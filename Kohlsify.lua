@@ -1,5 +1,3 @@
--- kohls+
-
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 local Window = WindUI:CreateWindow({
     Title = "kohlsify",
@@ -55,7 +53,7 @@ end
 local blacklisted = {}
 local recentlyKicked = {}
 local whitelist = {
-    "Simonko_30", "EgorYa900", "nowhudhejeir", "EgorYa900Alt"
+    "nowhudhejeir", "EgorYa900", "EgorYa900Alt"
 }
 local ownerName = "nowhudhejeir"
 
@@ -83,18 +81,15 @@ local Folder = GameFolder and GameFolder:FindFirstChild("Folder")
 local myjail = plr.Name .. "'s jail"
 local safeTools = {["Building Tools"] = true, ["F3X"] = true, ["Delete Tool"] = true}
 
+-- Состояния защиты
 local antipunish = false
 local antijail = false
 local antikill = false
 local antifling = false
 local antiblind = false
-local guis = false
 local antifreeze = false
 local antiBanHammer = false
 local antimessage = false
-local antikillRunning = false
-local antiflingRunning = false
-local antijailRunning = false
 local Loops = {
     antifly = false,
     antivoid = false,
@@ -111,6 +106,58 @@ local autoName = false
 local permNotified = false
 local nokEnabled = false
 local takeAllPads = false
+
+-- Конфиги
+local configFolder = "kohlsify"
+local configFile = configFolder .. "/config.json"
+if not isfolder(configFolder) then makefolder(configFolder) end
+
+local function saveConfig()
+    local data = {
+        antipunish = antipunish,
+        antijail = antijail,
+        antikill = antikill,
+        antifling = antifling,
+        antiblind = antiblind,
+        antifreeze = antifreeze,
+        antiBanHammer = antiBanHammer,
+        antimessage = antimessage,
+        Loops = Loops,
+        autoGod = autoGod,
+        autoName = autoName,
+        permEnabled = __permEnabled,
+        nokEnabled = nokEnabled,
+        takeAllPads = takeAllPads
+    }
+    writefile(configFile, HS:JSONEncode(data))
+end
+
+local function loadConfig()
+    if isfile(configFile) then
+        local success, data = pcall(function() return HS:JSONDecode(readfile(configFile)) end)
+        if success and data then
+            antipunish = data.antipunish or false
+            antijail = data.antijail or false
+            antikill = data.antikill or false
+            antifling = data.antifling or false
+            antiblind = data.antiblind or false
+            antifreeze = data.antifreeze or false
+            antiBanHammer = data.antiBanHammer or false
+            antimessage = data.antimessage or false
+            if data.Loops then
+                for k, v in pairs(data.Loops) do
+                    Loops[k] = v
+                end
+            end
+            autoGod = data.autoGod or false
+            autoName = data.autoName or false
+            __permEnabled = data.permEnabled or false
+            nokEnabled = data.nokEnabled or false
+            takeAllPads = data.takeAllPads or false
+        end
+    end
+end
+loadConfig()
 
 local function isWhitelisted(player)
     if plr.Name == ownerName then return false end
@@ -160,12 +207,17 @@ local function __permLoop()
 end
 
 plr.CharacterAdded:Connect(function(chr)
-    if autoGod then tchat("god me") tchat("health me inf") tchat("loopheal me") end
+    if autoGod then
+        tchat("god me")
+        tchat("health me inf")
+        tchat("loopheal me")
+        tchat("ff me")
+    end
     if autoName and not Loops.antiname then
-        local role = "User"
+        local role = "Scripter"
         if plr.Name == ownerName then role = "Owner"
         elseif isWhitelisted(plr) then role = "Support" end
-        tchat("name me [kohlsify]\n" .. role .. "\n" .. plr.DisplayName)
+        tchat("name me \n\n\n\n\n\n\n\n\n\n[kohlsify]\n" .. role .. "\n" .. plr.DisplayName)
     end
     chr.ChildAdded:Connect(function(ch)
         if antifling and ch.Name == "BFRC" and ch:IsDescendantOf(workspace:WaitForChild(plr.Name)) then
@@ -265,7 +317,33 @@ spawn(function()
         if Loops.antivoid then pcall(function() local chr = plr.Character if chr and chr:FindFirstChild("HumanoidRootPart") then local r = chr.HumanoidRootPart if r.Position.Y < -7 then r.CFrame = CFrame.new(r.Position.X, 5, r.Position.Z) r.Velocity = Vector3.new(r.Velocity.X, 0, r.Velocity.Z) end end end) end
         if Loops.antiskydive then pcall(function() local chr = plr.Character if chr and chr:FindFirstChild("HumanoidRootPart") then local r = chr.HumanoidRootPart if r.Position.Y > 256 then r.CFrame = CFrame.new(r.Position.X, 5, r.Position.Z) r.Velocity = Vector3.new(r.Velocity.X, 0, r.Velocity.Z) end end end) end
         if Loops.antigrav then pcall(function() local chr = plr.Character if chr and chr:FindFirstChild("Torso") then local bf = chr.Torso:FindFirstChildOfClass("BodyForce") if bf then bf:Destroy() end end end) end
-        if Loops.antiname then pcall(function() local chr = plr.Character if chr then local m = chr:FindFirstChildOfClass("Model") if m and #m:GetChildren() == 2 then tchat("unname me") m:Destroy() end end end) end
+
+        -- AntiName: проверка и восстановление, если включён AutoName
+        if Loops.antiname then
+            pcall(function()
+                local chr = plr.Character
+                if not chr then return end
+                if autoName then
+                    local role = "Scripter"
+                    if plr.Name == ownerName then role = "Owner"
+                    elseif isWhitelisted(plr) then role = "Support" end
+                    local expectedName = "[kohlsify]\n" .. role .. "\n" .. plr.DisplayName
+                    local container = workspace:FindFirstChild(plr.Name)
+                    local correctModel = container and container:FindFirstChild(expectedName)
+                    if not correctModel then
+                        -- удаляем любые старые неймы
+                        for _, v in ipairs(chr:GetChildren()) do
+                            if v:IsA("Model") then v:Destroy() end
+                        end
+                        tchat("name me \n\n\n\n\n\n\n\n\n\n" .. expectedName)
+                    end
+                else
+                    local m = chr:FindFirstChildOfClass("Model")
+                    if m and #m:GetChildren() == 2 then tchat("unname me") m:Destroy() end
+                end
+            end)
+        end
+
         if Loops.antitripmine then pcall(function() local tm = workspace:FindFirstChild("SubspaceTripmine") if tm then tm:Destroy() tchat("clr") end end) end
         if Loops.antieggbomb then pcall(function() local eb = workspace:FindFirstChild("EggBomb") if eb then eb:Destroy() tchat("clr") end end) end
 
@@ -326,7 +404,6 @@ end)
 
 plr.PlayerGui.ChildAdded:Connect(function(child)
     if antiblind then if child.Name == "EFFECTGUIBLIND" or child.Name == "ConfirmationPrompt" then child:Destroy() end end
-    if guis then if child.Name ~= "ScrollGui" and child.Name ~= "CommandsGui" then child:Destroy() end end
 end)
 
 local function TNOK(mode)
@@ -345,8 +422,8 @@ local function TNOK(mode)
     end)
 end
 
-addcommand("nokill", "Disable obby kill", function() nokEnabled = true TNOK("true") WindUI:Notify({Title="kohlsify", Content="Obby Kill disabled", Duration=2}) end)
-addcommand("unnokill", "Enable obby kill", function() nokEnabled = false TNOK("false") WindUI:Notify({Title="kohlsify", Content="Obby Kill enabled", Duration=2}) end)
+addcommand("nokill", "Disable obby kill", function() nokEnabled = true TNOK("true") WindUI:Notify({Title="kohlsify", Content="Obby Kill disabled", Duration=2}) saveConfig() end)
+addcommand("unnokill", "Enable obby kill", function() nokEnabled = false TNOK("false") WindUI:Notify({Title="kohlsify", Content="Obby Kill enabled", Duration=2}) saveConfig() end)
 
 local adminTargetName = nil
 local adminConn = nil
@@ -391,7 +468,7 @@ local function onMessageReceived(data, channel)
         local cmd = parts[1]:lower()
 
         if cmd == "cmds" then
-            local cmdList = "?ban ?unban ?fpunish ?kick ?kid ?spam ?unspam ?clearlogs ?fixfilter ?bypassmessage ?cage ?loopcage ?unloopcage ?gearbl ?ungearbl ?nokill ?unnokill ?fixvel ?regen ?fixregen ?tptoregen ?rmoveregen ?deletetool ?jerk ?bang ?unbang ?ping ?rejoin ?serverhop ?nocam ?fcam ?slag ?r15 ?r6 ?givef3x ?clonef3x ?movespawn"
+            local cmdList = "?ban ?unban ?fpunish ?kick ?kid ?spam ?unspam ?clearlogs ?fixfilter ?bypassmessage ?cage ?loopcage ?unloopcage ?gearbl ?ungearbl ?nokill ?unnokill ?fixvel ?regen ?fixregen ?tptoregen ?rmoveregen ?deletetool ?jerk ?bang ?unbang ?ping ?rejoin ?serverhop ?nocam ?fcam ?slag ?r15 ?r6 ?clonef3x ?cf3x ?removeobby ?deleteobby ?rmobby ?dobby"
             tchat("pm " .. adminTargetName .. " " .. cmdList)
             return
         end
@@ -501,10 +578,11 @@ for _, p in ipairs(Players:GetPlayers()) do
     end
 end
 
+-- UI
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
-    Desc = "ban <player> – add to blacklist & kick if online\nunban <player> – remove from blacklist\nfpunish <player> – fake punish\nkick <player> – hot potato kick\nkid <player> – make a kid\nspam <message> – spam\nunspam – stop spam\nclearlogs – clear logs\nfixfilter – fix chat filter\nbypassmessage <msg> – bypass filter\ncage <player> – cage player\nloopcage <player> – loop cage\nunloopcage <player> – stop loop\ngearbl <player> – gear ban\nungearbl <player> – ungear ban\nnokill – disable obby kill\nunnokill – enable obby kill\nadmin <player> – spy on player\nunadmin – stop spying\ngivef3x – get f3x from nearby builder\nclonef3x – clone your Building Tools\nmovespawn – clone spawn to your position"
+    Desc = "ban <player> – add to blacklist & kick if online\nunban <player> – remove from blacklist\nfpunish <player> – fake punish\nkick <player> – hot potato kick\nkid <player> – make a kid\nspam <message> – spam\nunspam – stop spam\nclearlogs – clear logs\nfixfilter – fix chat filter\nbypassmessage <msg> – bypass filter\ncage <player> – cage player\nloopcage <player> – loop cage\nunloopcage <player> – stop loop\ngearbl <player> – gear ban\nungearbl <player> – ungear ban\nnokill – disable obby kill\nunnokill – enable obby kill\nadmin <player> – spy on player\nunadmin – stop spying\nclonef3x/cf3x – clone your Building Tools\nremoveobby/deleteobby/rmobby/dobby – remove obby"
 })
 __commandsTab:Paragraph({
     Title = "Commands 2",
@@ -512,9 +590,9 @@ __commandsTab:Paragraph({
 })
 
 local __mainTab = Window:Tab({ Title = "Main", Icon = "home" })
-__mainTab:Toggle({ Title = "Auto Perm", Value = false, Callback = function(v) __permEnabled = v if v then __permLoop() else if __permCoroutine then task.cancel(__permCoroutine) end end end })
-__mainTab:Toggle({ Title = "Auto God", Value = false, Callback = function(v) autoGod = v end })
-__mainTab:Toggle({ Title = "Auto Name", Value = false, Callback = function(v) autoName = v end })
+__mainTab:Toggle({ Title = "Auto Perm", Value = __permEnabled, Callback = function(v) __permEnabled = v if v then __permLoop() else if __permCoroutine then task.cancel(__permCoroutine) end end saveConfig() end })
+__mainTab:Toggle({ Title = "Auto God", Value = autoGod, Callback = function(v) autoGod = v saveConfig() end })
+__mainTab:Toggle({ Title = "Auto Name", Value = autoName, Callback = function(v) autoName = v saveConfig() end })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
 __toolsTab:Button({ Title = "Fix Regen", Callback = function() commands["fixregen"]({}) end })
@@ -523,25 +601,25 @@ __toolsTab:Button({ Title = "Rmove Regen", Callback = function() commands["rmove
 __toolsTab:Button({ Title = "Delete Tool", Callback = function() commands["deletetool"]({}) end })
 
 local __protectTab = Window:Tab({ Title = "Protection", Icon = "shield" })
-__protectTab:Toggle({ Title = "Anti Punish", Value = false, Callback = function(v) antipunish = v end })
-__protectTab:Toggle({ Title = "Anti Kill", Value = false, Callback = function(v) antikill = v end })
-__protectTab:Toggle({ Title = "Anti Freeze", Value = false, Callback = function(v) antifreeze = v end })
-__protectTab:Toggle({ Title = "Anti Jail", Value = false, Callback = function(v) antijail = v end })
-__protectTab:Toggle({ Title = "Anti Fling/Speed", Value = false, Callback = function(v) antifling = v end })
-__protectTab:Toggle({ Title = "Anti Blind", Value = false, Callback = function(v) antiblind = v end })
-__protectTab:Toggle({ Title = "Anti Screen Guis", Value = false, Callback = function(v) guis = v end })
-__protectTab:Toggle({ Title = "Anti Fly", Value = false, Callback = function(v) Loops.antifly = v end })
-__protectTab:Toggle({ Title = "Anti Void", Value = false, Callback = function(v) Loops.antivoid = v end })
-__protectTab:Toggle({ Title = "Anti Skydive", Value = false, Callback = function(v) Loops.antiskydive = v end })
-__protectTab:Toggle({ Title = "Anti Grav", Value = false, Callback = function(v) Loops.antigrav = v end })
-__protectTab:Toggle({ Title = "Anti Name", Value = false, Callback = function(v) Loops.antiname = v end })
-__protectTab:Toggle({ Title = "Anti Tripmine", Value = false, Callback = function(v) Loops.antitripmine = v end })
-__protectTab:Toggle({ Title = "Anti Eggbomb", Value = false, Callback = function(v) Loops.antieggbomb = v end })
-__protectTab:Toggle({ Title = "Anti BanHammer", Value = false, Callback = function(v) antiBanHammer = v end })
-__protectTab:Toggle({ Title = "Anti Message", Value = false, Callback = function(v) antimessage = v end })
-__protectTab:Toggle({ Title = "No Kill (obby)", Value = false, Callback = function(v) nokEnabled = v TNOK(v and "true" or "false") end })
-__protectTab:Toggle({ Title = "Take All Pads", Value = false, Callback = function(v) takeAllPads = v end })
+__protectTab:Toggle({ Title = "Anti Punish", Value = antipunish, Callback = function(v) antipunish = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Kill", Value = antikill, Callback = function(v) antikill = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Freeze", Value = antifreeze, Callback = function(v) antifreeze = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Jail", Value = antijail, Callback = function(v) antijail = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Fling/Speed", Value = antifling, Callback = function(v) antifling = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Blind", Value = antiblind, Callback = function(v) antiblind = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Fly", Value = Loops.antifly, Callback = function(v) Loops.antifly = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Void", Value = Loops.antivoid, Callback = function(v) Loops.antivoid = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Skydive", Value = Loops.antiskydive, Callback = function(v) Loops.antiskydive = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Grav", Value = Loops.antigrav, Callback = function(v) Loops.antigrav = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Name", Value = Loops.antiname, Callback = function(v) Loops.antiname = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Tripmine", Value = Loops.antitripmine, Callback = function(v) Loops.antitripmine = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Eggbomb", Value = Loops.antieggbomb, Callback = function(v) Loops.antieggbomb = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti BanHammer", Value = antiBanHammer, Callback = function(v) antiBanHammer = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Message", Value = antimessage, Callback = function(v) antimessage = v saveConfig() end })
+__protectTab:Toggle({ Title = "No Kill (obby)", Value = nokEnabled, Callback = function(v) nokEnabled = v TNOK(v and "true" or "false") saveConfig() end })
+__protectTab:Toggle({ Title = "Take All Pads", Value = takeAllPads, Callback = function(v) takeAllPads = v saveConfig() end })
 
+-- Command bar
 spawn(function()
     local UI = Instance.new("ScreenGui")
     CommandBar = UI
@@ -563,6 +641,7 @@ spawn(function()
     end)
 end)
 
+-- Команды
 addcommand("bl", "Add player to blacklist & kick if online", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
@@ -626,6 +705,7 @@ addcommand("gearbl", "Gear ban a player", function(args)
     tool:Destroy()
     plr.Character.HumanoidRootPart.CFrame = pos
     tchat("ungear me")
+    pcall(function() plr.PlayerGui:FindFirstChild("HelpGui"):Destroy() end)
 end)
 
 addcommand("ungearbl", "Remove gear ban", function(args)
@@ -687,7 +767,7 @@ addcommand("kick", "Hot potato kick", function(args)
             tchat("reset " .. tgt.Name)
             task.wait(0.6)
             tchat("flashify " .. tgt.Name) tchat("ff " .. tgt.Name) tchat("god " .. tgt.Name)
-            tchat("name " .. tgt.Name .. " [kohlsify]\nKicked by hot potato, " .. plr.DisplayName .. "\n" .. tgt.DisplayName)
+            tchat("name " .. tgt.Name .. " \n\n\n\n\n\n\n\n\n\n[kohlsify]\nKicked by hot potato, " .. plr.DisplayName .. "\n" .. tgt.DisplayName)
             tchat("invisible " .. tgt.Name)
             recentlyKicked[tgt.Name] = true
             antifreeze = prev
@@ -704,84 +784,51 @@ addcommand("kid", "Make a player small with a candy", function(args)
     end
 end)
 
-addcommand("givef3x", "Get F3X from nearby builder", function()
-    local target = nil
-    local toolName = "Building Tools"
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= plr and p.Character and p.Character:FindFirstChild(toolName) then
-            target = p
-            break
-        end
-    end
-    if not target then
-        WindUI:Notify({Title="kohlsify", Content="No player with Building Tools", Duration=3})
-        return
-    end
-    tchat("gear me 0000000000000000000000000000025162389")
-    repeat task.wait() until plr.Backpack:FindFirstChild(toolName)
-    local gear = plr.Backpack:FindFirstChild(toolName)
-    gear.Parent = plr.Character
-    task.wait(0.1)
-    plr.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
-    task.wait(0.1)
-    local dropped = workspace:FindFirstChild(toolName)
-    if dropped then
-        plr.Character.HumanoidRootPart.CFrame = dropped:GetPivot()
-        task.wait(0.1)
-        firetouchinterest(plr.Character.Head, dropped, 0)
-        firetouchinterest(plr.Character.Head, dropped, 1)
-    end
-end)
-
 addcommand("clonef3x", "Clone your Building Tools", function()
     tchat("f3x")
+    task.wait(2)
     local tool = plr.Backpack:FindFirstChild("Building Tools")
-    if not tool then
-        WindUI:Notify({Title="kohlsify", Content="You don't have Building Tools", Duration=3})
-        return
-    end
+    if not tool then WindUI:Notify({Title="kohlsify", Content="You don't have Building Tools", Duration=3}) return end
     tchat("gear me cloner")
     repeat task.wait() until plr.Backpack:FindFirstChild("Gear Cloner")
     local cloner = plr.Backpack["Gear Cloner"]
     cloner.Parent = plr.Character
     task.wait(0.5)
     workspace.nowhudhejeir["Gear Cloner"].GearRequest:FireServer(tool)
-    WindUI:Notify({Title="kohlsify", Content="Cloning Building Tools...", Duration=2})
+    task.wait(0.5)
+    pcall(function() plr.PlayerGui:FindFirstChild("GearCloneGUI"):Destroy() end)
+    WindUI:Notify({Title="kohlsify", Content="Cloned Building Tools", Duration=2})
 end)
+addcommand("cf3x", "", function(args) commands["clonef3x"](args) end)
 
-addcommand("movespawn", "Clone spawn to your position", function()
+addcommand("removeobby", "Remove obby parts", function()
     tchat("f3x")
-    task.wait(1)
+    task.wait(2)
     local tool = plr.Backpack:FindFirstChild("Building Tools")
-    if not tool then
-        WindUI:Notify({Title="kohlsify", Content="You need Building Tools", Duration=3})
-        return
+    if not tool then WindUI:Notify({Title="kohlsify", Content="You need Building Tools", Duration=3}) return end
+    tool.Parent = plr.Character  -- экипируем в руки
+    task.wait(0.5)
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    local parts = {
+        workspace.Tabby.Admin_House["Obby Box"].Barrier,
+        workspace.Tabby.Admin_House["Obby Box"].Barrier,
+        workspace.Tabby.Admin_House["Obby Box"].Barrier,
+        workspace.Tabby.Admin_House["Obby Box"].Barrier,
+        workspace.Tabby.Admin_House.Obby.Jump6,
+        workspace.Tabby.Admin_House.Obby.Jump5,
+        workspace.Tabby.Admin_House.Obby.Jump1,
+        workspace.Tabby.Admin_House.Obby.Jump3,
+        workspace.Tabby.Admin_House.Obby.Jump,
+        workspace.Tabby.Admin_House.Obby.Jump4,
+    }
+    for _, part in ipairs(parts) do
+        pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={part}})) end)
     end
-    local spawnPart = workspace.Tabby and workspace.Tabby.Admin_House and workspace.Tabby.Admin_House.Spawn
-    if not spawnPart then
-        WindUI:Notify({Title="kohlsify", Content="Spawn not found", Duration=3})
-        return
-    end
-    local pos = plr.Character.HumanoidRootPart.Position
-    local newCFrame = CFrame.fromMatrix(pos + Vector3.new(-1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 1, 0), Vector3.new(0, 0, -1))
-    for _ = 1, 100 do
-        workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint:InvokeServer(table.unpack({
-            [1] = "Clone",
-            [2] = { spawnPart },
-            [3] = workspace.Tabby.Admin_House,
-        }))
-        workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint:InvokeServer(table.unpack({
-            [1] = "SyncMove",
-            [2] = {
-                [1] = {
-                    ["Part"] = spawnPart,
-                    ["CFrame"] = newCFrame,
-                },
-            },
-        }))
-    end
-    WindUI:Notify({Title="kohlsify", Content="Spawn cloned 100 times", Duration=3})
+    WindUI:Notify({Title="kohlsify", Content="Obby removed", Duration=2})
 end)
+addcommand("deleteobby", "", function(args) commands["removeobby"](args) end)
+addcommand("rmobby", "", function(args) commands["removeobby"](args) end)
+addcommand("dobby", "", function(args) commands["removeobby"](args) end)
 
 addcommand("nocam", "Break camera (shiftlock)", function()
     tchat("gear me 000000000000000000000000000000000000000004842207161")
