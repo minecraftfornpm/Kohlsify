@@ -86,10 +86,11 @@ function GetPlayers(target)
     local all = Players:GetPlayers()
     target = tostring(target or ""):lower()
     if target == "all" then return all end
-    if target == "others" then
-        local r = {}
-        for _, p in ipairs(all) do if p ~= plr then table.insert(r, p) end end
-        return r
+    if target == "random" then
+        local others = {}
+        for _, p in ipairs(all) do if p ~= plr then table.insert(others, p) end end
+        if #others == 0 then return {} end
+        return {others[math.random(1, #others)]}
     end
     if target == "me" then return {plr} end
     local r = {}
@@ -155,27 +156,23 @@ local antis = {
     antipunish = false,
     antistun = false,
     antisetgrav = false,
-    antiswag = false,
     antirocket = false,
     antisit = false,
     antiseizure = false,
-    antismoke = false,
-    antisparkles = false,
     antichar = false,
     antiparticles = false,
     antikill = false,
     antimessage = false,
     antidog = false,
     antiskydive = false,
-    antigrayscale = false,
     antiaddon = false,
     antifling = false,
     antifly = false,
     antivoid = false,
     antitripmine = false,
     antieggbomb = false,
-    antifreeze = false, -- checks WalkSpeed == 0
-    antibanhammer = false, -- checks all players for BanHammer
+    antifreeze = false,
+    antibanhammer = false,
 }
 
 -- Config
@@ -256,9 +253,12 @@ plr.CharacterAdded:Connect(function(chr)
     if autoGod then tchat("god me") tchat("ff me") end
     if autoName then
         local role = "User"
-        if plr.Name == ownerName then role = "Owner"
-        elseif isWhitelisted(plr) then role = "Support" end
-        tchat("name me [" .. role .. " in kohlsify]\n" .. plr.DisplayName)
+        if plr.Name == ownerName then
+            role = "Owner Of †Køhlsîfy"
+        elseif isWhitelisted(plr) then
+            role = "Support"
+        end
+        tchat("name me [" .. role .. "]\n" .. plr.DisplayName)
     end
     if antis.antifling then
         chr.ChildAdded:Connect(function(ch)
@@ -269,7 +269,7 @@ plr.CharacterAdded:Connect(function(chr)
     end
 end)
 
--- Antifling loop
+-- Antifling loop (threshold 20)
 spawn(function()
     local lastPos = nil
     while true do
@@ -278,7 +278,7 @@ spawn(function()
             if chr and chr:FindFirstChild("HumanoidRootPart") then
                 local r = chr.HumanoidRootPart
                 local vel = r.Velocity
-                if math.abs(vel.X) > 16 or math.abs(vel.Z) > 16 then
+                if math.abs(vel.X) > 20 or math.abs(vel.Z) > 20 then
                     if lastPos then r.CFrame = CFrame.new(lastPos) end
                     r.Velocity = Vector3.new(0, 0, 0)
                 end
@@ -321,13 +321,6 @@ spawn(function()
             end
         end
 
-        if antis.antiswag then
-            if plr.Character and plr.Character:FindFirstChild("EpicCape") then
-                plr.Character.EpicCape:Destroy()
-                tchat("normal me")
-            end
-        end
-
         if antis.antirocket then
             local chr = plr.Character
             if chr then
@@ -356,26 +349,6 @@ spawn(function()
                 pcall(function() chr.Seizure:Destroy() end)
                 if chr:FindFirstChild("Torso") then chr.Torso.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
                 if chr:FindFirstChild("Humanoid") then chr.Humanoid:ChangeState("GettingUp") end
-            end
-        end
-
-        if antis.antismoke then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Torso") and chr.Torso:FindFirstChild("Smoke") then
-                chr.Torso.Smoke:Destroy()
-                tchat("unsmoke me")
-            end
-        end
-
-        if antis.antisparkles then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Torso") then
-                for _, v in ipairs(chr.Torso:GetChildren()) do
-                    if v:IsA("Sparkles") then
-                        v:Destroy()
-                        tchat("unsparkle me")
-                    end
-                end
             end
         end
 
@@ -429,12 +402,6 @@ spawn(function()
             if chr and chr:FindFirstChild("HumanoidRootPart") and chr.HumanoidRootPart.Position.Y > 256 then
                 chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
                 chr.HumanoidRootPart.Velocity = Vector3.new(chr.HumanoidRootPart.Velocity.X, 0, chr.HumanoidRootPart.Velocity.Z)
-            end
-        end
-
-        if antis.antigrayscale then
-            if workspace.CurrentCamera and workspace.CurrentCamera:FindFirstChild("GrayScale") then
-                workspace.CurrentCamera.GrayScale:Destroy()
             end
         end
 
@@ -494,6 +461,13 @@ spawn(function()
                     p.Character.BanHammer:Destroy()
                     found = true
                 end
+                if workspace:FindFirstChild(p.Name) then
+                    local wsModel = workspace[p.Name]
+                    if wsModel:FindFirstChild("BanHammer") then
+                        wsModel.BanHammer:Destroy()
+                        found = true
+                    end
+                end
                 if found then
                     if p == plr then
                         tchat("reset me")
@@ -529,7 +503,11 @@ OnMessageDoneFiltering.OnClientEvent:Connect(onMessageReceived)
 -- Command definitions
 addcommand("bl", "Add player to blacklist & kick if online", function(args)
     local target = args[1] if not target then return end
-    local reason = args[2] and table.concat(args, " ", 2) or nil
+    local reason = nil
+    if #args > 1 then
+        reason = table.concat(args, " ", 2)
+        if reason:match("^%s*$") then reason = nil end
+    end
     for _, tgt in pairs(GetPlayers(target)) do
         if tgt.Name == ownerName or isWhitelisted(tgt) then return end
         if not table.find(blacklisted, tgt.Name) then
@@ -576,6 +554,21 @@ addcommand("bypassmessage", "Bypass chat filter", function(args)
     local msg = table.concat(args, " ") if msg == "" then return end
     local a = {} for letter in msg:gmatch(".") do if letter ~= "\r" and letter ~= "\n" then table.insert(a, letter) end end
     for b, c in ipairs(a) do local e = string.rep("  ", 2*(b-1)) tchat("h the\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"..e..c) end
+end)
+addcommand("chatbp", "Send bypassed message to chat", function(args)
+    local msg = table.concat(args, " ")
+    if msg == "" then return end
+    local mapping = {
+        a = "ą", b = "ḅ", c = "ĉ", d = "ď", e = "ė", f = "ƒ", g = "ģ", h = "ĥ",
+        i = "į", j = "ĵ", k = "ķ", l = "ļ", m = "ṃ", n = "ņ", o = "ø", p = "þ",
+        q = "q", r = "ŗ", s = "ş", t = "ţ", u = "ų", v = "ṿ", w = "ẇ", x = "ẋ",
+        y = "ẏ", z = "ż", A = "Ą", B = "Ḅ", C = "Ĉ", D = "Ď", E = "Ė",
+        F = "Ƒ", G = "Ģ", H = "Ĥ", I = "Į", J = "Ĵ", K = "Ķ", L = "Ļ",
+        M = "Ṃ", N = "Ņ", O = "Ø", P = "Þ", Q = "Q", R = "Ŗ", S = "Ş",
+        T = "Ţ", U = "Ų", V = "Ṿ", W = "Ẇ", X = "Ẋ", Y = "Ẏ", Z = "Ż"
+    }
+    local bypassed = msg:gsub(".", function(c) return mapping[c] or c end)
+    chat(bypassed)
 end)
 addcommand("cage", "Cage a player", function(args)
     local target = args[1] if not target then return end
@@ -763,7 +756,11 @@ end
 
 addcommand("kick", "Hot potato kick (optional reason)", function(args)
     local target = args[1] if not target then return end
-    local reason = args[2] and table.concat(args, " ", 2) or nil
+    local reason = nil
+    if #args > 1 then
+        reason = table.concat(args, " ", 2)
+        if reason:match("^%s*$") then reason = nil end
+    end
     for _, tgt in pairs(GetPlayers(target)) do
         if isWhitelisted(tgt) then WindUI:Notify({Title="†Køhlsîfy", Content=tgt.Name.." is whitelisted", Duration=3}) return end
         spawn(function()
@@ -1053,27 +1050,22 @@ end)
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick with optional reason\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl <player> - gear ban\nungearbl <player> - ungear ban\nnok/removeobby - remove obby killbricks\nunlockworkspace - unlock parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag - lag server\nr15/r6 - switch rig\nping - show ping in chat\njerk - animation\nbang/unbang - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nspawntrap - move spawn trap\nprison - move prison\nfurry <player> - make furry\nnaked/nude <player> - paint skin color\nfemify <player> - make feminine"
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick with optional reason\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\nchatbp <msg> - bypass filter in chat\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl <player> - gear ban\nungearbl <player> - ungear ban\nnok/removeobby - remove obby killbricks\nunlockworkspace - unlock parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag - lag server\nr15/r6 - switch rig\nping - show ping in chat\njerk - animation\nbang/unbang - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nspawntrap - move spawn trap\nprison - move prison\nfurry <player> - make furry\nnaked/nude <player> - paint skin color\nfemify <player> - make feminine"
 })
 
 local __protectTab = Window:Tab({ Title = "Protection", Icon = "shield" })
--- Explicit toggles
 __protectTab:Toggle({ Title = "Anti Punish", Value = antis.antipunish, Callback = function(v) antis.antipunish = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Stun", Value = antis.antistun, Callback = function(v) antis.antistun = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Setgrav", Value = antis.antisetgrav, Callback = function(v) antis.antisetgrav = v saveConfig() end })
-__protectTab:Toggle({ Title = "Anti Swag", Value = antis.antiswag, Callback = function(v) antis.antiswag = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Rocket", Value = antis.antirocket, Callback = function(v) antis.antirocket = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Sit", Value = antis.antisit, Callback = function(v) antis.antisit = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Seizure", Value = antis.antiseizure, Callback = function(v) antis.antiseizure = v saveConfig() end })
-__protectTab:Toggle({ Title = "Anti Smoke", Value = antis.antismoke, Callback = function(v) antis.antismoke = v saveConfig() end })
-__protectTab:Toggle({ Title = "Anti Sparkles", Value = antis.antisparkles, Callback = function(v) antis.antisparkles = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Char", Value = antis.antichar, Callback = function(v) antis.antichar = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Particles", Value = antis.antiparticles, Callback = function(v) antis.antiparticles = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Kill", Value = antis.antikill, Callback = function(v) antis.antikill = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Message", Value = antis.antimessage, Callback = function(v) antis.antimessage = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Dog", Value = antis.antidog, Callback = function(v) antis.antidog = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Skydive", Value = antis.antiskydive, Callback = function(v) antis.antiskydive = v saveConfig() end })
-__protectTab:Toggle({ Title = "Anti Grayscale", Value = antis.antigrayscale, Callback = function(v) antis.antigrayscale = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Addon", Value = antis.antiaddon, Callback = function(v) antis.antiaddon = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Fling", Value = antis.antifling, Callback = function(v) antis.antifling = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Fly", Value = antis.antifly, Callback = function(v) antis.antifly = v saveConfig() end })
