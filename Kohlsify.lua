@@ -224,7 +224,20 @@ end
 
 local autoGod = false
 local autoName = false
-local childAddedConn = nil
+
+local function onStateChanged(old, new)
+    if antis.antistun and new == Enum.HumanoidStateType.PlatformStanding then
+        humanoid.PlatformStand = false
+        tchat("unstun me")
+    end
+    if antis.antisit and new == Enum.HumanoidStateType.Seated then
+        humanoid.Sit = false
+        tchat("unsit me")
+    end
+    if antis.antifreeze and humanoid.WalkSpeed == 0 then
+        tchat("thaw me")
+    end
+end
 
 plr.CharacterAdded:Connect(function(chr)
     if autoGod then tchat("god me") tchat("ff me") end
@@ -237,12 +250,30 @@ plr.CharacterAdded:Connect(function(chr)
         end
         tchat("name me [†Køhlsîfy]\nRank:" .. role .. "\n" .. plr.DisplayName)
     end
-    if antis.antifling then
-        if childAddedConn then childAddedConn:Disconnect() end
-        childAddedConn = chr.ChildAdded:Connect(function(ch)
-            if ch.Name == "BFRC" then pcall(function() ch:Destroy() end) end
-        end)
-    end
+
+    local hum = chr:WaitForChild("Humanoid")
+    hum.StateChanged:Connect(onStateChanged)
+
+    chr.ChildAdded:Connect(function(child)
+        if antis.antifling and child.Name == "BFRC" then
+            pcall(function() child:Destroy() end)
+        end
+        if antis.antirocket and child.Name == "Rocket" then
+            pcall(function() child:Destroy() end)
+        end
+        if antis.antiseizure and child.Name == "Seizure" then
+            child:Destroy()
+            tchat("unseizure me")
+        end
+        if antis.antidog and child:IsA("FakeTorso") then
+            tchat("undog me")
+            child:Destroy()
+        end
+        if antis.antiaddon and child.Name == "Addon" then
+            child:Destroy()
+            tchat("reset me")
+        end
+    end)
 end)
 
 spawn(function()
@@ -277,16 +308,6 @@ spawn(function()
                 if confirm then confirm:Destroy() end
             end
 
-            if antis.antipunish then end
-
-            if antis.antistun then
-                local chr = plr.Character
-                if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.PlatformStand then
-                    chr.Humanoid.PlatformStand = false
-                    tchat("unstun me")
-                end
-            end
-
             if antis.antisetgrav then
                 local chr = plr.Character
                 if chr then
@@ -299,37 +320,6 @@ spawn(function()
                             end
                         end
                     end
-                end
-            end
-
-            if antis.antirocket then
-                local chr = plr.Character
-                if chr then
-                    for _, v in ipairs(chr:GetChildren()) do
-                        if v.Name == "Rocket" then
-                            pcall(function() v.CanCollide = false end)
-                            task.wait(0.5)
-                            pcall(function() v:Destroy() end)
-                        end
-                    end
-                end
-            end
-
-            if antis.antisit then
-                local chr = plr.Character
-                if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.Sit then
-                    chr.Humanoid.Sit = false
-                    tchat("unsit me")
-                end
-            end
-
-            if antis.antiseizure then
-                local chr = plr.Character
-                if chr and chr:FindFirstChild("Seizure") then
-                    tchat("unseizure me")
-                    pcall(function() chr.Seizure:Destroy() end)
-                    if chr:FindFirstChild("Torso") then chr.Torso.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
-                    if chr:FindFirstChild("Humanoid") then chr.Humanoid:ChangeState("GettingUp") end
                 end
             end
 
@@ -363,27 +353,11 @@ spawn(function()
                 end)
             end
 
-            if antis.antidog then
-                local chr = plr.Character
-                if chr then
-                    for _, v in ipairs(chr:GetDescendants()) do
-                        if v:IsA("FakeTorso") then tchat("undog me") end
-                    end
-                end
-            end
-
             if antis.antiskydive then
                 local chr = plr.Character
                 if chr and chr:FindFirstChild("HumanoidRootPart") and chr.HumanoidRootPart.Position.Y > 256 then
                     chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
                     chr.HumanoidRootPart.Velocity = Vector3.new(chr.HumanoidRootPart.Velocity.X, 0, chr.HumanoidRootPart.Velocity.Z)
-                end
-            end
-
-            if antis.antiaddon then
-                if plr.Character and plr.Character:FindFirstChild("Addon") then
-                    plr.Character.Addon:Destroy()
-                    tchat("reset me")
                 end
             end
 
@@ -416,11 +390,6 @@ spawn(function()
             if antis.antieggbomb then
                 local eb = workspace:FindFirstChild("EggBomb")
                 if eb then eb:Destroy() tchat("clr") end
-            end
-
-            if antis.antifreeze then
-                local chr = plr.Character
-                if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.WalkSpeed == 0 then tchat("thaw me") end
             end
 
             if antis.antibanhammer then
@@ -479,7 +448,6 @@ addcommand("hide", "Stop sending commands to chat", function()
     WindUI:Notify({Title="†Køhlsîfy", Content="Command sending disabled", Duration=2})
 end)
 
--- Blacklist handling (loopkick)
 local function handleBannedPlayer(p)
     if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) then
         local reason = blacklistReasons[p.Name]
@@ -489,6 +457,7 @@ local function handleBannedPlayer(p)
             chat(p.DisplayName .. " you have been in blacklist")
         end
         task.wait(2)
+        executeCommand("respawn " .. p.Name)
         executeCommand("kick " .. p.Name)
     end
 end
@@ -812,6 +781,7 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
             transferHotPotato(tgt)
             task.wait(2)
             tchat("reset " .. tgt.Name)
+            task.wait(0.2)
             local nameMsg
             if reason then
                 nameMsg = "[†Køhlsîfy]\nCrashed by " .. plr.DisplayName .. ", reason: " .. reason .. "\n" .. tgt.DisplayName
