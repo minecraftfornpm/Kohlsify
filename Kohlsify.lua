@@ -36,7 +36,7 @@ end
 
 local Players = game:GetService("Players")
 local plr = Players.LocalPlayer
-local prefix = "-"
+local prefix = "†"
 local TS = game:GetService("TeleportService")
 local HS = game:GetService("HttpService")
 local ChatService = game:GetService("ReplicatedStorage"):WaitForChild("DefaultChatSystemChatEvents")
@@ -96,7 +96,7 @@ end
 local blacklisted = {}
 local blacklistReasons = {}
 local recentlyKicked = {}
-local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg"}
+local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
 local ownerName = "nowhudhejeir"
 
 if not isfile or not readfile or not writefile then
@@ -150,6 +150,7 @@ local antis = {
     antieggbomb = false,
     antifreeze = false,
     antibanhammer = false,
+    antigearban = false,
 }
 
 local configFolder = "kohlsify"
@@ -227,9 +228,12 @@ plr.CharacterAdded:Connect(function(chr)
     if autoGod then tchat("god me") tchat("ff me") end
     if autoName then
         local role = "User"
-        if plr.Name == ownerName then role = "Owner Of †Køhlsîfy"
-        elseif isWhitelisted(plr) then role = "Support" end
-        tchat("name me [" .. role .. "]\n" .. plr.DisplayName)
+        if plr.Name == ownerName then
+            role = "Owner"
+        elseif isWhitelisted(plr) then
+            role = "Helper"
+        end
+        tchat("name me [†Køhlsîfy]\nRank:" .. role .. "\n" .. plr.DisplayName)
     end
     if antis.antifling then
         chr.ChildAdded:Connect(function(ch)
@@ -428,6 +432,17 @@ spawn(function()
                 if found then
                     if p == plr then tchat("reset me") else tchat("reset " .. p.Name) end
                 end
+            end
+        end
+
+        if antis.antigearban then
+            local backpackEnabled = game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)
+            if not backpackEnabled then
+                game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+            end
+            if plr.Character then
+                local db = plr.Character:FindFirstChild("DisableBackpack")
+                if db then db:Destroy() end
             end
         end
     end
@@ -762,33 +777,86 @@ end)
 addcommand("cf3x", "", function(args) commands["clonef3x"](args) end)
 
 addcommand("nok", "Remove obby kill bricks (touch interests)", function()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump1.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump2.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump3.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump4.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump5.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump6.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump7.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump8.TouchInterest:Destroy()
-    game:GetService("Workspace").Terrain["_Game"].Workspace.Obby.Jump9.TouchInterest:Destroy()
+    for i = 1, 9 do
+        local part = workspace.Tabby and workspace.Tabby.Admin_House and workspace.Tabby.Admin_House:FindFirstChild("obby" .. i)
+        if part and part:FindFirstChild("TouchInterest") then
+            part.TouchInterest:Destroy()
+        end
+    end
     WindUI:Notify({Title="†Køhlsîfy", Content="Obby kill bricks removed!", Duration=3})
 end)
 addcommand("nokill", "Alias for nok", function(args) commands["nok"](args) end)
 
-addcommand("removeobby", "Remove obby kill parts (all parts)", function()
-    local obby = workspace.Terrain and workspace.Terrain["_Game"] and workspace.Terrain["_Game"].Workspace and workspace.Terrain["_Game"].Workspace.Obby
-    if not obby then WindUI:Notify({Title="†Køhlsîfy", Content="Obby not found", Duration=3}) return end
-    for _, part in ipairs(obby:GetChildren()) do
-        if part:IsA("BasePart") and part:FindFirstChild("TouchInterest") then
-            part.TouchInterest:Destroy()
-        end
+addcommand("removeobby", "Remove obby kill parts using F3X", function()
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
+        task.wait(2)
     end
-    WindUI:Notify({Title="†Køhlsîfy", Content="Obby (killbricks) removed!", Duration=3})
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X, maybe you need to wait?", Duration=3})
+        return
+    end
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    tool.Parent = plr.Character
+    task.wait(0.5)
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    local parts = {}
+    for i = 1, 9 do
+        local p = workspace.Tabby and workspace.Tabby.Admin_House and workspace.Tabby.Admin_House:FindFirstChild("obby" .. i)
+        if p then table.insert(parts, p) end
+    end
+    for _, part in ipairs(parts) do
+        pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={part}})) end)
+    end
+    WindUI:Notify({Title="†Køhlsîfy", Content="Obby removed via F3X", Duration=3})
 end)
 addcommand("deleteobby", "", function(args) commands["removeobby"](args) end)
 addcommand("rmobby", "", function(args) commands["removeobby"](args) end)
 addcommand("dobby", "", function(args) commands["removeobby"](args) end)
+
+addcommand("clr", "Give F3X and delete everything in workspace except players", function()
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
+        task.wait(2)
+    end
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    tool.Parent = plr.Character
+    task.wait(0.5)
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and not v:IsDescendantOf(Players) and not v:IsDescendantOf(workspace:FindFirstChild(plr.Name)) then
+            pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={v}})) end)
+        end
+    end
+    WindUI:Notify({Title="†Køhlsîfy", Content="Workspace cleared!", Duration=3})
+end)
+
+addcommand("clrworkspace", "Delete everything in workspace.Tabby.Admin_House", function()
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
+        task.wait(2)
+    end
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    tool.Parent = plr.Character
+    task.wait(0.5)
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    local target = workspace.Tabby and workspace.Tabby.Admin_House
+    if not target then return end
+    for _, v in ipairs(target:GetDescendants()) do
+        if v:IsA("BasePart") then
+            pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={v}})) end)
+        end
+    end
+    WindUI:Notify({Title="†Køhlsîfy", Content="Admin House cleared!", Duration=3})
+end)
 
 addcommand("unlockworkspace", "Unlock all parts", function()
     for _, v in ipairs(workspace:GetDescendants()) do if v:IsA("BasePart") then v.Locked = false end end
@@ -974,6 +1042,7 @@ addcommand("furry", "Make player furry", function(args)
     local tgt = GetPlayers(target)[1]
     if not tgt then return end
     tchat("char " .. tgt.Name .. " 18")
+    task.wait(0.2)
     tchat("paint " .. tgt.Name .. " Institutional white")
     tchat("hat " .. tgt.Name .. " 10563319994")
     tchat("hat " .. tgt.Name .. " 12578728695")
@@ -996,6 +1065,7 @@ addcommand("femify", "Make player feminine", function(args)
     local tgt = GetPlayers(target)[1]
     if not tgt then return end
     tchat("char " .. tgt.Name .. " 31342830")
+    task.wait(0.2)
     repeat task.wait() until tgt.Character and tgt.Character:FindFirstChild("Ultra-Fabulous Hair")
     task.wait(0.3)
     tchat("removehats " .. tgt.Name)
@@ -1013,14 +1083,8 @@ end)
 
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
-    Title = "Commands 1",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick with optional reason\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\nchatbp <msg> - bypass filter in chat\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl <player> - gear ban\nungearbl <player> - ungear ban\nnok/removeobby - remove obby killbricks\nunlockworkspace - unlock parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag - lag server\nr15/r6 - switch rig\nping - show ping in chat\njerk - animation\nbang/unbang - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nspawntrap - move spawn trap\nprison - move prison\nfurry <player> - make furry\nnaked/nude <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
-})
-
-local __commandsTab2 = Window:Tab({ Title = "Commands 2", Icon = "lucide:list" })
-__commandsTab2:Paragraph({
-    Title = "Commands 2",
-    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\njerk - you know\nbang - bang animation\nunbang - stop bang\nping - show ping\nrejoin (rj) - rejoin server\nserverhop (shop) - hop server\nnocam - break camera (shiftlock)\nfcam <player> - break player's camera\nfixcam - fix your camera\nslag - server lag (2 stones)\nr15 - switch to R15\nr6 - switch to R6"
+    Title = "Commands",
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\nchatbp <msg> - bypass filter in chat\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove obby killbricks\nremoveobby - remove obby via F3X\nclr - clear workspace\nclrworkspace - clear Admin House\nunlockworkspace - unlock parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag - lag server\nr15/r6 - switch rig\nping - show ping\njerk - animation\nbang/unbang - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nspawntrap - move spawn trap\nprison - move prison\nfurry <player> - make furry\nnaked/nude <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
@@ -1050,6 +1114,7 @@ __protectTab:Toggle({ Title = "Anti Tripmine", Value = antis.antitripmine, Callb
 __protectTab:Toggle({ Title = "Anti Eggbomb", Value = antis.antieggbomb, Callback = function(v) antis.antieggbomb = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Freeze", Value = antis.antifreeze, Callback = function(v) antis.antifreeze = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti BanHammer", Value = antis.antibanhammer, Callback = function(v) antis.antibanhammer = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti GearBan", Value = antis.antigearban, Callback = function(v) antis.antigearban = v saveConfig() end })
 
 local __mainTab = Window:Tab({ Title = "Main", Icon = "home" })
 __mainTab:Toggle({ Title = "Auto Perm", Value = permEnabled, Callback = function(v) permEnabled = v if v then permLoop() else if permCoroutine then task.cancel(permCoroutine) end end saveConfig() end })
@@ -1061,7 +1126,7 @@ spawn(function()
     CommandBar = UI
     local dairyQueenBalls = Instance.new("TextButton") local holyshidt11 = Instance.new("TextBox")
     UI.Name = "&!)!@@#$(~(UI" UI.Parent = game.CoreGui UI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling UI.ResetOnSpawn = false
-    dairyQueenBalls.Name = "dairyQueenBalls" dairyQueenBalls.Parent = UI dairyQueenBalls.AnchorPoint = Vector2.new(1,1) dairyQueenBalls.BackgroundColor3 = Color3.fromRGB(255,255,255) dairyQueenBalls.BackgroundTransparency = 1.000 dairyQueenBalls.BorderSizePixel = 0 dairyQueenBalls.Position = UDim2.new(1,0,1,0) dairyQueenBalls.Size = UDim2.new(0,61,0,61) dairyQueenBalls.Font = Enum.Font.Roboto dairyQueenBalls.Text = "]" dairyQueenBalls.TextColor3 = Color3.fromRGB(255,255,255) dairyQueenBalls.TextSize = 75.000 dairyQueenBalls.TextStrokeTransparency = 0.000 dairyQueenBalls.TextWrapped = true
+    dairyQueenBalls.Name = "dairyQueenBalls" dairyQueenBalls.Parent = UI dairyQueenBalls.AnchorPoint = Vector2.new(1,1) dairyQueenBalls.BackgroundColor3 = Color3.fromRGB(255,255,255) dairyQueenBalls.BackgroundTransparency = 1.000 dairyQueenBalls.BorderSizePixel = 0 dairyQueenBalls.Position = UDim2.new(1,0,1,0) dairyQueenBalls.Size = UDim2.new(0,61,0,61) dairyQueenBalls.Font = Enum.Font.Roboto dairyQueenBalls.Text = "†" dairyQueenBalls.TextColor3 = Color3.fromRGB(255,255,255) dairyQueenBalls.TextSize = 75.000 dairyQueenBalls.TextStrokeTransparency = 0.000 dairyQueenBalls.TextWrapped = true
     holyshidt11.Name = "holyshidt11" holyshidt11.Parent = dairyQueenBalls holyshidt11.AnchorPoint = Vector2.new(1,0) holyshidt11.BackgroundColor3 = Color3.fromRGB(255,255,255) holyshidt11.BackgroundTransparency = 0.750 holyshidt11.BorderSizePixel = 5 holyshidt11.BorderMode = "Inset" holyshidt11.Size = UDim2.new(0,0,0,61) holyshidt11.Visible = false holyshidt11.Font = Enum.Font.Code holyshidt11.Text = "" holyshidt11.AutomaticSize = "X" holyshidt11.TextColor3 = Color3.fromRGB(255,255,255) holyshidt11.TextSize = 50.000 holyshidt11.TextStrokeTransparency = 0.000 holyshidt11.TextXAlignment = Enum.TextXAlignment.Right
     local isCmdBarOpen = false
     function openUI() isCmdBarOpen = true holyshidt11:CaptureFocus() holyshidt11.Visible = true game:GetService("TweenService"):Create(holyshidt11, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, 0, false, 0), {Size = UDim2.new(0,200,0,61)}):Play() game:GetService("RunService").RenderStepped:Wait() holyshidt11.Text = "" end
@@ -1083,3 +1148,6 @@ spawn(function()
 end)
 
 if permEnabled then permLoop() end
+
+-- Auto run nok on startup
+commands["nok"]({})
