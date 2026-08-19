@@ -151,6 +151,7 @@ local antis = {
     antifreeze = false,
     antibanhammer = false,
     antigearban = false,
+    antiblind = false,
 }
 
 local configFolder = "kohlsify"
@@ -223,6 +224,7 @@ end
 
 local autoGod = false
 local autoName = false
+local childAddedConn = nil
 
 plr.CharacterAdded:Connect(function(chr)
     if autoGod then tchat("god me") tchat("ff me") end
@@ -236,7 +238,8 @@ plr.CharacterAdded:Connect(function(chr)
         tchat("name me [†Køhlsîfy]\nRank:" .. role .. "\n" .. plr.DisplayName)
     end
     if antis.antifling then
-        chr.ChildAdded:Connect(function(ch)
+        if childAddedConn then childAddedConn:Disconnect() end
+        childAddedConn = chr.ChildAdded:Connect(function(ch)
             if ch.Name == "BFRC" then pcall(function() ch:Destroy() end) end
         end)
     end
@@ -264,187 +267,197 @@ spawn(function()
 end)
 
 spawn(function()
-    while task.wait(0.1) do
-        if antis.antipunish then end
-
-        if antis.antistun then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.PlatformStand then
-                chr.Humanoid.PlatformStand = false
-                tchat("unstun me")
+    while true do
+        task.wait(0.1)
+        pcall(function()
+            if antis.antiblind then
+                local blind = plr.PlayerGui:FindFirstChild("EFFECTGUIBLIND")
+                if blind then blind:Destroy() end
+                local confirm = plr.PlayerGui:FindFirstChild("ConfirmationPrompt")
+                if confirm then confirm:Destroy() end
             end
-        end
 
-        if antis.antisetgrav then
-            local chr = plr.Character
-            if chr then
-                for _, v in ipairs(chr:GetDescendants()) do
-                    if v:IsA("BodyForce") or v:IsA("BodyPosition") then
-                        v:Destroy()
-                        if chr:FindFirstChild("HumanoidRootPart") then
-                            chr.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
-                            chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
+            if antis.antipunish then end
+
+            if antis.antistun then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.PlatformStand then
+                    chr.Humanoid.PlatformStand = false
+                    tchat("unstun me")
+                end
+            end
+
+            if antis.antisetgrav then
+                local chr = plr.Character
+                if chr then
+                    for _, v in ipairs(chr:GetDescendants()) do
+                        if v:IsA("BodyForce") or v:IsA("BodyPosition") then
+                            v:Destroy()
+                            if chr:FindFirstChild("HumanoidRootPart") then
+                                chr.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                                chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
+                            end
                         end
                     end
                 end
             end
-        end
 
-        if antis.antirocket then
-            local chr = plr.Character
-            if chr then
-                for _, v in ipairs(chr:GetChildren()) do
-                    if v.Name == "Rocket" then
-                        pcall(function() v.CanCollide = false end)
-                        task.wait(0.5)
-                        v:Destroy()
+            if antis.antirocket then
+                local chr = plr.Character
+                if chr then
+                    for _, v in ipairs(chr:GetChildren()) do
+                        if v.Name == "Rocket" then
+                            pcall(function() v.CanCollide = false end)
+                            task.wait(0.5)
+                            pcall(function() v:Destroy() end)
+                        end
                     end
                 end
             end
-        end
 
-        if antis.antisit then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.Sit then
-                chr.Humanoid.Sit = false
-                tchat("unsit me")
+            if antis.antisit then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.Sit then
+                    chr.Humanoid.Sit = false
+                    tchat("unsit me")
+                end
             end
-        end
 
-        if antis.antiseizure then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Seizure") then
-                tchat("unseizure me")
-                pcall(function() chr.Seizure:Destroy() end)
-                if chr:FindFirstChild("Torso") then chr.Torso.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
-                if chr:FindFirstChild("Humanoid") then chr.Humanoid:ChangeState("GettingUp") end
+            if antis.antiseizure then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("Seizure") then
+                    tchat("unseizure me")
+                    pcall(function() chr.Seizure:Destroy() end)
+                    if chr:FindFirstChild("Torso") then chr.Torso.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
+                    if chr:FindFirstChild("Humanoid") then chr.Humanoid:ChangeState("GettingUp") end
+                end
             end
-        end
 
-        if antis.antichar then
-            if plr.UserId ~= plr.CharacterAppearanceId then tchat("unchar me") end
-        end
+            if antis.antichar then
+                if plr.UserId ~= plr.CharacterAppearanceId then tchat("unchar me") end
+            end
 
-        if antis.antiparticles then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Torso") then
-                for _, v in ipairs(chr.Torso:GetChildren()) do
-                    if v:IsA("ParticleEmitter") then
-                        v:Destroy()
-                        tchat("unparticle me")
+            if antis.antiparticles then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("Torso") then
+                    for _, v in ipairs(chr.Torso:GetChildren()) do
+                        if v:IsA("ParticleEmitter") then
+                            v:Destroy()
+                            tchat("unparticle me")
+                        end
                     end
                 end
             end
-        end
 
-        if antis.antikill then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.Health <= 0 then tchat("reset me") end
-        end
-
-        if antis.antimessage then
-            pcall(function()
-                for _, v in ipairs(plr.PlayerGui:GetDescendants()) do
-                    if v.Name == "MessageGUI" or v.Name == "Message" or v.Name == "HintGUI" or v.Name == "Ice" then v:Destroy() end
-                end
-                if Folder then for _, v in ipairs(Folder:GetDescendants()) do if v.Name == "Message" then v:Destroy() end end end
-            end)
-        end
-
-        if antis.antidog then
-            local chr = plr.Character
-            if chr then
-                for _, v in ipairs(chr:GetDescendants()) do
-                    if v:IsA("FakeTorso") then tchat("undog me") end
-                end
+            if antis.antikill then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.Health <= 0 then tchat("reset me") end
             end
-        end
 
-        if antis.antiskydive then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("HumanoidRootPart") and chr.HumanoidRootPart.Position.Y > 256 then
-                chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
-                chr.HumanoidRootPart.Velocity = Vector3.new(chr.HumanoidRootPart.Velocity.X, 0, chr.HumanoidRootPart.Velocity.Z)
+            if antis.antimessage then
+                pcall(function()
+                    for _, v in ipairs(plr.PlayerGui:GetDescendants()) do
+                        if v.Name == "MessageGUI" or v.Name == "Message" or v.Name == "HintGUI" or v.Name == "Ice" then v:Destroy() end
+                    end
+                    if Folder then for _, v in ipairs(Folder:GetDescendants()) do if v.Name == "Message" then v:Destroy() end end end
+                end)
             end
-        end
 
-        if antis.antiaddon then
-            if plr.Character and plr.Character:FindFirstChild("Addon") then
-                plr.Character.Addon:Destroy()
-                tchat("reset me")
-            end
-        end
-
-        if antis.antifly then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Humanoid") then
-                local state = chr.Humanoid:GetState()
-                if state == Enum.HumanoidStateType.PlatformStanding or state == Enum.HumanoidStateType.Flying then
-                    tchat("unfly me")
-                    tchat("clip me")
-                    if chr:FindFirstChild("Torso") then chr.Torso.Anchored = false end
-                    chr.Humanoid.PlatformStand = false
+            if antis.antidog then
+                local chr = plr.Character
+                if chr then
+                    for _, v in ipairs(chr:GetDescendants()) do
+                        if v:IsA("FakeTorso") then tchat("undog me") end
+                    end
                 end
             end
-        end
 
-        if antis.antivoid then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("HumanoidRootPart") and chr.HumanoidRootPart.Position.Y < -7 then
-                chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
-                chr.HumanoidRootPart.Velocity = Vector3.new(chr.HumanoidRootPart.Velocity.X, 0, chr.HumanoidRootPart.Velocity.Z)
+            if antis.antiskydive then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("HumanoidRootPart") and chr.HumanoidRootPart.Position.Y > 256 then
+                    chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
+                    chr.HumanoidRootPart.Velocity = Vector3.new(chr.HumanoidRootPart.Velocity.X, 0, chr.HumanoidRootPart.Velocity.Z)
+                end
             end
-        end
 
-        if antis.antitripmine then
-            local tm = workspace:FindFirstChild("SubspaceTripmine")
-            if tm then tm:Destroy() tchat("clr") end
-        end
-
-        if antis.antieggbomb then
-            local eb = workspace:FindFirstChild("EggBomb")
-            if eb then eb:Destroy() tchat("clr") end
-        end
-
-        if antis.antifreeze then
-            local chr = plr.Character
-            if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.WalkSpeed == 0 then tchat("thaw me") end
-        end
-
-        if antis.antibanhammer then
-            for _, p in ipairs(Players:GetPlayers()) do
-                local found = false
-                if p.Backpack and p.Backpack:FindFirstChild("BanHammer") then
-                    p.Backpack.BanHammer:Destroy()
-                    found = true
+            if antis.antiaddon then
+                if plr.Character and plr.Character:FindFirstChild("Addon") then
+                    plr.Character.Addon:Destroy()
+                    tchat("reset me")
                 end
-                if p.Character and p.Character:FindFirstChild("BanHammer") then
-                    p.Character.BanHammer:Destroy()
-                    found = true
+            end
+
+            if antis.antifly then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("Humanoid") then
+                    local state = chr.Humanoid:GetState()
+                    if state == Enum.HumanoidStateType.PlatformStanding or state == Enum.HumanoidStateType.Flying then
+                        tchat("unfly me")
+                        tchat("clip me")
+                        if chr:FindFirstChild("Torso") then chr.Torso.Anchored = false end
+                        chr.Humanoid.PlatformStand = false
+                    end
                 end
-                if workspace:FindFirstChild(p.Name) then
-                    local wsModel = workspace[p.Name]
-                    if wsModel:FindFirstChild("BanHammer") then
-                        wsModel.BanHammer:Destroy()
+            end
+
+            if antis.antivoid then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("HumanoidRootPart") and chr.HumanoidRootPart.Position.Y < -7 then
+                    chr.HumanoidRootPart.CFrame = CFrame.new(chr.HumanoidRootPart.Position.X, 5, chr.HumanoidRootPart.Position.Z)
+                    chr.HumanoidRootPart.Velocity = Vector3.new(chr.HumanoidRootPart.Velocity.X, 0, chr.HumanoidRootPart.Velocity.Z)
+                end
+            end
+
+            if antis.antitripmine then
+                local tm = workspace:FindFirstChild("SubspaceTripmine")
+                if tm then tm:Destroy() tchat("clr") end
+            end
+
+            if antis.antieggbomb then
+                local eb = workspace:FindFirstChild("EggBomb")
+                if eb then eb:Destroy() tchat("clr") end
+            end
+
+            if antis.antifreeze then
+                local chr = plr.Character
+                if chr and chr:FindFirstChild("Humanoid") and chr.Humanoid.WalkSpeed == 0 then tchat("thaw me") end
+            end
+
+            if antis.antibanhammer then
+                for _, p in ipairs(Players:GetPlayers()) do
+                    local found = false
+                    if p.Backpack and p.Backpack:FindFirstChild("BanHammer") then
+                        p.Backpack.BanHammer:Destroy()
                         found = true
                     end
-                end
-                if found then
-                    if p == plr then tchat("reset me") else tchat("reset " .. p.Name) end
+                    if p.Character and p.Character:FindFirstChild("BanHammer") then
+                        p.Character.BanHammer:Destroy()
+                        found = true
+                    end
+                    if workspace:FindFirstChild(p.Name) then
+                        local wsModel = workspace[p.Name]
+                        if wsModel:FindFirstChild("BanHammer") then
+                            wsModel.BanHammer:Destroy()
+                            found = true
+                        end
+                    end
+                    if found then
+                        if p == plr then tchat("reset me") else tchat("reset " .. p.Name) end
+                    end
                 end
             end
-        end
 
-        if antis.antigearban then
-            local backpackEnabled = game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)
-            if not backpackEnabled then
-                game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+            if antis.antigearban then
+                local backpackEnabled = game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)
+                if not backpackEnabled then
+                    game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+                end
+                if plr.Character then
+                    local db = plr.Character:FindFirstChild("DisableBackpack")
+                    if db then db:Destroy() end
+                end
             end
-            if plr.Character then
-                local db = plr.Character:FindFirstChild("DisableBackpack")
-                if db then db:Destroy() end
-            end
-        end
+        end)
     end
 end)
 
@@ -465,6 +478,70 @@ addcommand("hide", "Stop sending commands to chat", function()
     showCommands = false
     WindUI:Notify({Title="†Køhlsîfy", Content="Command sending disabled", Duration=2})
 end)
+
+-- Blacklist handling (loopkick)
+local function handleBannedPlayer(p)
+    if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) then
+        local reason = blacklistReasons[p.Name]
+        if reason and reason ~= "" then
+            chat(p.DisplayName .. " you have been in blacklist, reason: " .. reason)
+        else
+            chat(p.DisplayName .. " you have been in blacklist")
+        end
+        task.wait(2)
+        executeCommand("kick " .. p.Name)
+    end
+end
+
+Players.PlayerAdded:Connect(function(p)
+    if p ~= plr and table.find(whitelist, p.Name) then
+        WindUI:Notify({Title="†Køhlsîfy", Content="Whitelisted, " .. p.Name .. " join in server", Duration=5})
+    end
+    if p ~= plr then
+        if recentlyKicked[p.Name] then
+            local dialog = Instance.new("ScreenGui")
+            dialog.Name = "ReturnDialog"
+            dialog.Parent = game.CoreGui
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(0, 300, 0, 120)
+            frame.Position = UDim2.new(0.5, -150, 0.5, -60)
+            frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+            frame.Parent = dialog
+            local title = Instance.new("TextLabel")
+            title.Size = UDim2.new(1,0,0,30)
+            title.BackgroundTransparency = 1
+            title.Text = p.Name .. " joined back, kick him?"
+            title.TextColor3 = Color3.new(1,1,1)
+            title.Parent = frame
+            local ignoreBtn = Instance.new("TextButton")
+            ignoreBtn.Size = UDim2.new(0,100,0,30)
+            ignoreBtn.Position = UDim2.new(0.05,0,0.7,0)
+            ignoreBtn.Text = "Ignore"
+            ignoreBtn.Parent = frame
+            local kickBtn = Instance.new("TextButton")
+            kickBtn.Size = UDim2.new(0,100,0,30)
+            kickBtn.Position = UDim2.new(0.55,0,0.7,0)
+            kickBtn.Text = "Kick"
+            kickBtn.Parent = frame
+            ignoreBtn.MouseButton1Click:Connect(function() dialog:Destroy() end)
+            kickBtn.MouseButton1Click:Connect(function()
+                dialog:Destroy()
+                executeCommand("kick " .. p.Name)
+            end)
+            task.delay(30, function() recentlyKicked[p.Name] = nil end)
+        end
+        handleBannedPlayer(p)
+    end
+end)
+
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= plr then
+        if table.find(whitelist, p.Name) then
+            WindUI:Notify({Title="†Køhlsîfy", Content="Whitelisted, " .. p.Name .. " join in server", Duration=5})
+        end
+        handleBannedPlayer(p)
+    end
+end
 
 addcommand("bl", "Add player to blacklist & kick if online", function(args)
     local target = args[1] if not target then return end
@@ -524,13 +601,13 @@ addcommand("chatbp", "Send bypassed message to chat", function(args)
     local msg = table.concat(args, " ")
     if msg == "" then return end
     local mapping = {
-        a = "ą", b = "ḅ", c = "ĉ", d = "ď", e = "ė", f = "ƒ", g = "ģ", h = "ĥ",
-        i = "į", j = "ĵ", k = "ķ", l = "ļ", m = "ṃ", n = "ņ", o = "ø", p = "þ",
-        q = "q", r = "ŗ", s = "ş", t = "ţ", u = "ų", v = "ṿ", w = "ẇ", x = "ẋ",
-        y = "ẏ", z = "ż", A = "Ą", B = "Ḅ", C = "Ĉ", D = "Ď", E = "Ė",
-        F = "Ƒ", G = "Ģ", H = "Ĥ", I = "Į", J = "Ĵ", K = "Ķ", L = "Ļ",
-        M = "Ṃ", N = "Ņ", O = "Ø", P = "Þ", Q = "Q", R = "Ŗ", S = "Ş",
-        T = "Ţ", U = "Ų", V = "Ṿ", W = "Ẇ", X = "Ẋ", Y = "Ẏ", Z = "Ż"
+        a = "ąą", b = "ḅḅ", c = "ĉĉ", d = "ďď", e = "ėė", f = "ƒƒ", g = "ģģ", h = "ĥĥ",
+        i = "įį", j = "ĵĵ", k = "ķķ", l = "ļļ", m = "ṃṃ", n = "ņņ", o = "øø", p = "þþ",
+        q = "qq", r = "ŗŗ", s = "şş", t = "ţţ", u = "ųų", v = "ṿṿ", w = "ẇẇ", x = "ẋẋ",
+        y = "ẏẏ", z = "żż", A = "ĄĄ", B = "ḄḄ", C = "ĈĈ", D = "ĎĎ", E = "ĖĖ",
+        F = "ƑƑ", G = "ĢĢ", H = "ĤĤ", I = "ĮĮ", J = "ĴĴ", K = "ĶĶ", L = "ĻĻ",
+        M = "ṂṂ", N = "ŅŅ", O = "ØØ", P = "ÞÞ", Q = "QQ", R = "ŖŖ", S = "ŞŞ",
+        T = "ŢŢ", U = "ŲŲ", V = "ṾṾ", W = "ẆẆ", X = "ẊẊ", Y = "ẎẎ", Z = "ŻŻ"
     }
     local bypassed = msg:gsub(".", function(c) return mapping[c] or c end)
     chat(bypassed)
@@ -776,14 +853,13 @@ addcommand("clonef3x", "Clone your Building Tools", function()
 end)
 addcommand("cf3x", "", function(args) commands["clonef3x"](args) end)
 
-addcommand("nok", "Remove obby kill bricks (touch interests)", function()
-    for i = 1, 9 do
-        local part = workspace.Tabby and workspace.Tabby.Admin_House and workspace.Tabby.Admin_House:FindFirstChild("obby" .. i)
-        if part and part:FindFirstChild("TouchInterest") then
-            part.TouchInterest:Destroy()
+addcommand("nok", "Remove all TouchInterests", function()
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("TouchInterest") then
+            pcall(function() v:Destroy() end)
         end
     end
-    WindUI:Notify({Title="†Køhlsîfy", Content="Obby kill bricks removed!", Duration=3})
+    WindUI:Notify({Title="†Køhlsîfy", Content="All TouchInterests removed!", Duration=3})
 end)
 addcommand("nokill", "Alias for nok", function(args) commands["nok"](args) end)
 
@@ -801,9 +877,10 @@ addcommand("removeobby", "Remove obby kill parts using F3X", function()
     task.wait(0.5)
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local parts = {}
-    for i = 1, 9 do
-        local p = workspace.Tabby and workspace.Tabby.Admin_House and workspace.Tabby.Admin_House:FindFirstChild("obby" .. i)
-        if p then table.insert(parts, p) end
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and v:FindFirstChild("TouchInterest") then
+            table.insert(parts, v)
+        end
     end
     for _, part in ipairs(parts) do
         pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={part}})) end)
@@ -827,35 +904,29 @@ addcommand("clr", "Give F3X and delete everything in workspace except players", 
     tool.Parent = plr.Character
     task.wait(0.5)
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and not v:IsDescendantOf(Players) and not v:IsDescendantOf(workspace:FindFirstChild(plr.Name)) then
-            pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={v}})) end)
-        end
-    end
-    WindUI:Notify({Title="†Køhlsîfy", Content="Workspace cleared!", Duration=3})
-end)
 
-addcommand("clrworkspace", "Delete everything in workspace.Tabby.Admin_House", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
-        task.wait(2)
-    end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
-    end
-    local tool = plr.Backpack:FindFirstChild("Building Tools")
-    tool.Parent = plr.Character
-    task.wait(0.5)
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    local target = workspace.Tabby and workspace.Tabby.Admin_House
-    if not target then return end
-    for _, v in ipairs(target:GetDescendants()) do
-        if v:IsA("BasePart") then
-            pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={v}})) end)
+    local toRemove = {}
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if (v:IsA("Part") or v:IsA("Sphere") or v:IsA("Cylinder") or v:IsA("Wedge") or v:IsA("CornerWedge") or v:IsA("MeshPart") or v:IsA("Tool")) then
+            local isPlayerPart = false
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p.Character and (v:IsDescendantOf(p.Character) or v == p.Character) then
+                    isPlayerPart = true
+                    break
+                end
+            end
+            if not isPlayerPart then
+                table.insert(toRemove, v)
+            end
         end
     end
-    WindUI:Notify({Title="†Køhlsîfy", Content="Admin House cleared!", Duration=3})
+
+    for _, v in ipairs(toRemove) do
+        pcall(function()
+            api:InvokeServer(table.unpack({[1] = "Remove", [2] = {v}}))
+        end)
+    end
+    WindUI:Notify({Title="†Køhlsîfy", Content="Workspace cleared instantly!", Duration=3})
 end)
 
 addcommand("unlockworkspace", "Unlock all parts", function()
@@ -1083,8 +1154,14 @@ end)
 
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
-    Title = "Commands",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\nchatbp <msg> - bypass filter in chat\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove obby killbricks\nremoveobby - remove obby via F3X\nclr - clear workspace\nclrworkspace - clear Admin House\nunlockworkspace - unlock parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag - lag server\nr15/r6 - switch rig\nping - show ping\njerk - animation\nbang/unbang - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nspawntrap - move spawn trap\nprison - move prison\nfurry <player> - make furry\nnaked/nude <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
+    Title = "Commands 1",
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\nchatbp <msg> - bypass filter in chat\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove all TouchInterests\nremoveobby - remove obby via F3X\nclr - clear workspace instantly\nunlockworkspace - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag - lag server\nr15/r6 - switch rig\nping - show ping\njerk - animation\nbang/unbang - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nspawntrap - move spawn trap\nprison - move prison\nfurry <player> - make furry\nnaked/nude <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
+})
+
+local __commandsTab2 = Window:Tab({ Title = "Commands 2", Icon = "lucide:list" })
+__commandsTab2:Paragraph({
+    Title = "Commands 2",
+    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\njerk - you know\nbang - bang animation\nunbang - stop bang\nping - show ping\nrejoin (rj) - rejoin server\nserverhop (shop) - hop server\nnocam - break camera (shiftlock)\nfcam <player> - break player's camera\nfixcam - fix your camera\nslag - server lag (2 stones)\nr15 - switch to R15\nr6 - switch to R6"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
@@ -1094,6 +1171,7 @@ __toolsTab:Button({ Title = "Remove Regen", Callback = function() commands["rmov
 __toolsTab:Button({ Title = "Delete Tool", Callback = function() commands["deletetool"]({}) end })
 
 local __protectTab = Window:Tab({ Title = "Protection", Icon = "shield" })
+__protectTab:Toggle({ Title = "Anti Blind", Value = antis.antiblind, Callback = function(v) antis.antiblind = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Punish", Value = antis.antipunish, Callback = function(v) antis.antipunish = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Stun", Value = antis.antistun, Callback = function(v) antis.antistun = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Setgrav", Value = antis.antisetgrav, Callback = function(v) antis.antisetgrav = v saveConfig() end })
