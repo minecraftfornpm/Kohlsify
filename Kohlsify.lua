@@ -240,17 +240,25 @@ local autoGod = false
 local autoForceField = false
 local autoName = false
 
-local function onStateChanged(old, new)
-    if antis.antistun and new == Enum.HumanoidStateType.PlatformStanding then
-        humanoid.PlatformStand = false
-        tchat("unstun me")
+local function sendName()
+    if not autoName then return end
+    local role = "User"
+    if plr.Name == ownerName then
+        role = "Owner"
+    elseif isWhitelisted(plr) then
+        role = "Helper"
     end
-    if antis.antisit and new == Enum.HumanoidStateType.Seated then
-        humanoid.Sit = false
-        tchat("unsit me")
-    end
-    if antis.antifreeze and humanoid.WalkSpeed == 0 then
-        tchat("thaw me")
+    tchat("name me [†Køhlsîfy]\nRank:" .. role .. "\n" .. plr.DisplayName)
+end
+
+local function checkNameModel()
+    if not autoName then return end
+    local chr = plr.Character
+    if not chr then return end
+    local container = workspace:FindFirstChild(plr.Name)
+    local model = container and container:FindFirstChild("[†Køhlsîfy]\nRank:" .. (plr.Name == ownerName and "Owner" or (isWhitelisted(plr) and "Helper" or "User")) .. "\n" .. plr.DisplayName)
+    if not model then
+        sendName()
     end
 end
 
@@ -274,13 +282,7 @@ plr.CharacterAdded:Connect(function(chr)
         end)
     end
     if autoName then
-        local role = "User"
-        if plr.Name == ownerName then
-            role = "Owner"
-        elseif isWhitelisted(plr) then
-            role = "Helper"
-        end
-        tchat("name me [†Køhlsîfy]\nRank:" .. role .. "\n" .. plr.DisplayName)
+        sendName()
     end
     local hum = chr:WaitForChild("Humanoid")
     hum.StateChanged:Connect(onStateChanged)
@@ -301,6 +303,29 @@ plr.CharacterAdded:Connect(function(chr)
         end
     end)
 end)
+
+spawn(function()
+    while true do
+        task.wait(2)
+        if autoName then
+            checkNameModel()
+        end
+    end
+end)
+
+local function onStateChanged(old, new)
+    if antis.antistun and new == Enum.HumanoidStateType.PlatformStanding then
+        humanoid.PlatformStand = false
+        tchat("unstun me")
+    end
+    if antis.antisit and new == Enum.HumanoidStateType.Seated then
+        humanoid.Sit = false
+        tchat("unsit me")
+    end
+    if antis.antifreeze and humanoid.WalkSpeed == 0 then
+        tchat("thaw me")
+    end
+end
 
 spawn(function()
     local lastPos = nil
@@ -488,6 +513,56 @@ local function handleBannedPlayer(p)
         task.wait(2)
         tchat("respawn " .. p.Name)
         executeCommand("kick " .. p.Name)
+    end
+end
+
+Players.PlayerAdded:Connect(function(p)
+    if p ~= plr and table.find(whitelist, p.Name) then
+        WindUI:Notify({Title="†Køhlsîfy", Content="Whitelisted, " .. p.Name .. " join in server", Duration=5})
+    end
+    if p ~= plr then
+        if recentlyKicked[p.Name] then
+            local dialog = Instance.new("ScreenGui")
+            dialog.Name = "ReturnDialog"
+            dialog.Parent = game.CoreGui
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(0, 300, 0, 120)
+            frame.Position = UDim2.new(0.5, -150, 0.5, -60)
+            frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+            frame.Parent = dialog
+            local title = Instance.new("TextLabel")
+            title.Size = UDim2.new(1,0,0,30)
+            title.BackgroundTransparency = 1
+            title.Text = p.Name .. " joined back, kick him?"
+            title.TextColor3 = Color3.new(1,1,1)
+            title.Parent = frame
+            local ignoreBtn = Instance.new("TextButton")
+            ignoreBtn.Size = UDim2.new(0,100,0,30)
+            ignoreBtn.Position = UDim2.new(0.05,0,0.7,0)
+            ignoreBtn.Text = "Ignore"
+            ignoreBtn.Parent = frame
+            local kickBtn = Instance.new("TextButton")
+            kickBtn.Size = UDim2.new(0,100,0,30)
+            kickBtn.Position = UDim2.new(0.55,0,0.7,0)
+            kickBtn.Text = "Kick"
+            kickBtn.Parent = frame
+            ignoreBtn.MouseButton1Click:Connect(function() dialog:Destroy() end)
+            kickBtn.MouseButton1Click:Connect(function()
+                dialog:Destroy()
+                executeCommand("kick " .. p.Name)
+            end)
+            task.delay(30, function() recentlyKicked[p.Name] = nil end)
+        end
+        handleBannedPlayer(p)
+    end
+end)
+
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= plr then
+        if table.find(whitelist, p.Name) then
+            WindUI:Notify({Title="†Køhlsîfy", Content="Whitelisted, " .. p.Name .. " join in server", Duration=5})
+        end
+        handleBannedPlayer(p)
     end
 end
 
@@ -829,11 +904,10 @@ addcommand("clrall", "Delete everything in workspace instantly", function()
         end
     end
 
-    for _, v in ipairs(toRemove) do
-        pcall(function()
-            api:InvokeServer(table.unpack({[1] = "Remove", [2] = {v}}))
-        end)
-    end
+    -- Single call to remove all
+    pcall(function()
+        api:InvokeServer(table.unpack({[1] = "Remove", [2] = toRemove}))
+    end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Workspace cleared instantly!", Duration=3})
 end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
@@ -856,9 +930,8 @@ addcommand("fix", "Remove problematic seats and spawns", function()
             table.insert(toRemove, v)
         end
     end
-    for _, v in ipairs(toRemove) do
-        pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={v}})) end)
-    end
+    -- Single call
+    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]=toRemove})) end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Seats and bottom spawns removed", Duration=3})
 end)
 
