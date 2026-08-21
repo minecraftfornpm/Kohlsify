@@ -162,9 +162,19 @@ local antis = {
     antiblind = false,
 }
 
+-- Объявляем все переменные ДО loadConfig
 local configFolder = "kohlsify"
 local configFile = configFolder .. "/config.json"
 if not isfolder(configFolder) then makefolder(configFolder) end
+
+local permEnabled = false
+local permCoroutine = nil
+local autoGod = false
+local autoForceField = false
+local autoName = false
+local showCommands = false
+local cageLoops = {}
+local spamConnection = nil
 
 local function saveConfig()
     local data = {
@@ -192,9 +202,6 @@ local function loadConfig()
     end
 end
 loadConfig()
-
-local permEnabled = false
-local permCoroutine = nil
 
 local function isWhitelisted(player)
     if plr.Name == ownerName then return false end
@@ -232,16 +239,12 @@ local function permLoop()
                 end
             end)
             if not success then
-                task.wait(1) -- wait and retry
+                task.wait(1)
             end
             task.wait(0.1)
         end
     end)
 end
-
-local autoGod = false
-local autoForceField = false
-local autoName = false
 
 local function sendName()
     if not autoName then return end
@@ -456,8 +459,6 @@ game:GetService("Lighting").ChildAdded:Connect(function(child)
         tchat("unpunish me")
     end
 end)
-
-local showCommands = false
 
 addcommand("show", "Send commands to chat when using command bar", function()
     showCommands = true
