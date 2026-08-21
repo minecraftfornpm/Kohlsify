@@ -73,54 +73,36 @@ local function executeCommand(text)
     end
 end
 
--- Объявляем whitelist и ownerName до GetPlayers
-local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
-local ownerName = "nowhudhejeir"
-
-local function isWhitelisted(player)
-    if plr.Name == ownerName then return false end
-    return table.find(whitelist, player.Name) ~= nil
-end
-
 function GetPlayers(target)
     local all = Players:GetPlayers()
     target = tostring(target or ""):lower()
-    local result = {}
-    local function filterWhitelist(list)
-        local filtered = {}
-        for _, p in ipairs(list) do
-            if p ~= plr and not (p.Name == ownerName or isWhitelisted(p)) then
-                table.insert(filtered, p)
-            end
-        end
-        return filtered
-    end
-    if target == "all" then
-        result = filterWhitelist(all)
-    elseif target == "random" then
-        local others = filterWhitelist(all)
+    if target == "all" then return all end
+    if target == "random" then
+        local others = {}
+        for _, p in ipairs(all) do if p ~= plr then table.insert(others, p) end end
         if #others == 0 then return {} end
-        result = {others[math.random(1, #others)]}
-    elseif target == "others" then
-        result = filterWhitelist(all)
-    elseif target == "me" then
-        result = {plr}
-    else
-        for _, p in ipairs(all) do
-            if p.Name:lower():find(target, 1, true) or p.DisplayName:lower():find(target, 1, true) then
-                if not (p == plr and target ~= "me") and not (p.Name == ownerName or isWhitelisted(p)) then
-                    table.insert(result, p)
-                end
-            end
+        return {others[math.random(1, #others)]}
+    end
+    if target == "others" then
+        local r = {}
+        for _, p in ipairs(all) do if p ~= plr then table.insert(r, p) end end
+        return r
+    end
+    if target == "me" then return {plr} end
+    local r = {}
+    for _, p in ipairs(all) do
+        if p.Name:lower():find(target, 1, true) or p.DisplayName:lower():find(target, 1, true) then
+            table.insert(r, p)
         end
     end
-    return result
+    return r
 end
 
 local blacklisted = {}
 local blacklistReasons = {}
 local recentlyKicked = {}
-local processedBanned = {}
+local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
+local ownerName = "nowhudhejeir"
 
 if not isfile or not readfile or not writefile then
     isfile = function() return false end
@@ -207,6 +189,11 @@ end
 loadConfig()
 
 local permCoroutine = nil
+
+local function isWhitelisted(player)
+    if plr.Name == ownerName then return false end
+    return table.find(whitelist, player.Name) ~= nil
+end
 
 local function hasRealAdmin() return Pads and Pads:FindFirstChild(plr.Name .. "'s admin") ~= nil end
 local function getFreePad() return Pads and Pads:FindFirstChild("Touch to get admin") end
@@ -467,8 +454,7 @@ addcommand("hide", "Stop sending commands to chat", function()
 end)
 
 local function handleBannedPlayer(p)
-    if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) and not processedBanned[p.Name] then
-        processedBanned[p.Name] = true
+    if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) then
         local reason = blacklistReasons[p.Name]
         if reason and reason ~= "" then
             chat(p.DisplayName .. " you have been in blacklist, reason: " .. reason)
@@ -476,7 +462,6 @@ local function handleBannedPlayer(p)
             chat(p.DisplayName .. " you have been in blacklist")
         end
         task.wait(2)
-        tchat("respawn " .. p.Name)
         executeCommand("kick " .. p.Name)
     end
 end
@@ -504,7 +489,6 @@ addcommand("unban", "Remove player from blacklist", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         for i = #blacklisted, 1, -1 do if blacklisted[i] == tgt.Name then table.remove(blacklisted, i) end end
         blacklistReasons[tgt.Name] = nil
-        processedBanned[tgt.Name] = nil
         local content = readfile("Blacklisted.txt")
         local newContent = content:gsub(tgt.Name .. "[^\n]*\n", "")
         writefile("Blacklisted.txt", newContent)
@@ -620,18 +604,6 @@ addcommand("ungearbl", "Remove gear ban", function(args)
     end
 end)
 
--- F3X API helper (dynamic local player name)
-local function getF3XApi()
-    local playerModel = workspace:FindFirstChild(plr.Name)
-    if playerModel then
-        local bt = playerModel:FindFirstChild("Building Tools")
-        if bt and bt:FindFirstChild("SyncAPI") and bt.SyncAPI:FindFirstChild("ServerEndpoint") then
-            return bt.SyncAPI.ServerEndpoint
-        end
-    end
-    return nil
-end
-
 addcommand("fixvel", "Fix velocity of map parts", function()
     pcall(function()
         local Workspace_Folder = workspace.Terrain["_Game"].Workspace
@@ -653,12 +625,14 @@ addcommand("regen", "Click regen button", function()
 end)
 
 addcommand("fixregen", "Move regen to workspace and delete it", function()
+    tchat("f3x")
+    task.wait(2)
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
     task.wait(0.5)
-    local api = getF3XApi()
-    if api then
+    if plr.Backpack:FindFirstChild("Building Tools") then
+        local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
         pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
     end
     WindUI:Notify({Title="†Køhlsîfy", Content="Regen reset", Duration=2})
@@ -669,20 +643,35 @@ addcommand("tptoregen", "Teleport to regen", function()
     if regen and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then plr.Character.HumanoidRootPart.CFrame = regen.CFrame * CFrame.new(0, 2.5, 0) end
 end)
 
+local function GetNil(Name, DebugId)
+    for _, Object in getnilinstances() do
+        if Object.Name == Name and Object:GetDebugId() == DebugId then
+            return Object
+        end
+    end
+end
+
 addcommand("rmoveregen", "Remove regen (move to nil)", function()
+    tchat("f3x")
+    task.wait(2)
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
     task.wait(0.5)
-    local api = getF3XApi()
-    if api then
+    local event = GetNil("ServerEndpoint", "1_678455")
+    if event then
         pcall(function()
-            api:InvokeServer(
+            local randPos = CFrame.new(
+                math.random(-1000000000, -100000000),
+                math.random(-1000000000, -100000000),
+                math.random(-1000000000, -100000000)
+            )
+            event:InvokeServer(
                 "SyncMove",
                 {
                     {
                         Part = regen,
-                        CFrame = CFrame.new(-93848838485, -999999999, -98313868284, 0, 0, -1, 0, 1, 0, 1, 0, 0)
+                        CFrame = randPos
                     }
                 }
             )
@@ -783,7 +772,7 @@ end)
 
 addcommand("clonef3x", "Clone your Building Tools", function()
     if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("gear me 0000000000000000000000000000025162389") -- give f3x
+        tchat("f3x")
         task.wait(2)
     end
     if not plr.Backpack:FindFirstChild("Building Tools") then
@@ -795,17 +784,14 @@ addcommand("clonef3x", "Clone your Building Tools", function()
     local cloner = plr.Backpack["Gear Cloner"]
     cloner.Parent = plr.Character
     task.wait(0.5)
-    local playerModel = workspace:FindFirstChild(plr.Name)
-    if playerModel and playerModel:FindFirstChild("Gear Cloner") then
-        playerModel["Gear Cloner"].GearRequest:FireServer(plr.Backpack["Building Tools"])
-    end
+    workspace.nowhudhejeir["Gear Cloner"].GearRequest:FireServer(plr.Backpack["Building Tools"])
     task.wait(0.5)
     pcall(function() plr.PlayerGui:FindFirstChild("GearCloneGUI"):Destroy() end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Cloned Building Tools", Duration=2})
 end)
 addcommand("cf3x", "", function(args) commands["clonef3x"](args) end)
 
--- NOK loop
+-- NOK loop replacement
 local __nokEnabled = true
 local __nokCoroutine = nil
 
@@ -857,16 +843,15 @@ addcommand("nok", "Start NOK loop (disable obby touch)", function()
 end)
 
 addcommand("clrall", "Delete everything in workspace", function()
-    local api = getF3XApi()
-    if not api then
-        tchat("gear me 0000000000000000000000000000025162389")
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
         task.wait(2)
-        api = getF3XApi()
-        if not api then
-            WindUI:Notify({Title="†Køhlsîfy", Content="F3X API not available", Duration=3})
-            return
-        end
     end
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
     for _, v in ipairs(workspace:GetDescendants()) do
         if (v:IsA("Part") or v:IsA("Sphere") or v:IsA("Cylinder") or v:IsA("Wedge") or v:IsA("CornerWedge") or v:IsA("MeshPart") or v:IsA("Tool")) then
@@ -890,19 +875,18 @@ end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
 
 addcommand("fix", "Remove problematic seats and spawns", function()
-    local api = getF3XApi()
-    if not api then
-        tchat("gear me 0000000000000000000000000000025162389")
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
         task.wait(2)
-        api = getF3XApi()
-        if not api then
-            WindUI:Notify({Title="†Køhlsîfy", Content="F3X API not available", Duration=3})
-            return
-        end
     end
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
     for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("Seat") or (v:IsA("BasePart") and v.Name == "Spawn" and v.Position.Y < -50) then
+        if v:IsA("Seat") or (v.Name == "Spawn" and (v:IsA("BasePart") or v:IsA("Model")) and v:GetPivot().Y < -50) then
             table.insert(toRemove, v)
         end
     end
@@ -1008,23 +992,21 @@ end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
 addcommand("servercrash", "Crash server with many blocks", function()
-    local api = getF3XApi()
-    if not api then
-        tchat("gear me 0000000000000000000000000000025162389")
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
         task.wait(2)
-        api = getF3XApi()
-        if not api then
-            WindUI:Notify({Title="†Køhlsîfy", Content="F3X API not available", Duration=3})
-            return
-        end
     end
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local pos = plr.Character and plr.Character.HumanoidRootPart and plr.Character.HumanoidRootPart.CFrame or CFrame.new(0, 5, 0)
     spawn(function()
         for i = 1, 1000000 do
             pcall(function()
                 api:InvokeServer("CreatePart", "Normal", pos, workspace.Tabby.Admin_House)
             end)
-            if i % 1000 == 0 then task.wait() end
         end
     end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Server crash initiated!", Duration=3})
@@ -1049,7 +1031,12 @@ addcommand("jerk", "You know", function()
     local track = humanoid:LoadAnimation(anim) track:Play() track:AdjustSpeed(0.7) task.wait(0.1) track:Stop()
 end)
 
-addcommand("rejoin", "Rejoin server", function() TS:TeleportToPlaceInstance(game.PlaceId, game.JobId, plr) end)
+addcommand("rejoin", "Rejoin server", function()
+    if queue_on_teleport then
+        queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua\"))()")
+    end
+    TS:TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
+end)
 addcommand("rj", "", function(args) commands["rejoin"](args) end)
 addcommand("serverhop", "Hop server", function()
     local success, result = pcall(function() return game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?limit=100") end)
@@ -1059,6 +1046,9 @@ addcommand("serverhop", "Hop server", function()
     for _, s in ipairs(servers.data) do if s.playing < s.maxPlayers then table.insert(good, s) end end
     if #good > 0 then
         local target = good[math.random(1, #good)]
+        if queue_on_teleport then
+            queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua\"))()")
+        end
         TS:TeleportToPlaceInstance(game.PlaceId, target.id, plr)
     else
         WindUI:Notify({Title="†Køhlsîfy", Content="No available servers", Duration=3})
@@ -1260,7 +1250,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end)
+end
 
 if permEnabled then permLoop() end
 
