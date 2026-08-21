@@ -71,18 +71,6 @@ local function executeCommand(text)
     end
 end
 
--- Объявляем whitelist и isWhitelisted ДО GetPlayers
-local blacklisted = {}
-local blacklistReasons = {}
-local recentlyKicked = {}
-local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
-local ownerName = "nowhudhejeir"
-
-local function isWhitelisted(player)
-    if plr.Name == ownerName then return false end
-    return table.find(whitelist, player.Name) ~= nil
-end
-
 function GetPlayers(target)
     local all = Players:GetPlayers()
     target = tostring(target or ""):lower()
@@ -117,6 +105,12 @@ function GetPlayers(target)
     end
     return result
 end
+
+local blacklisted = {}
+local blacklistReasons = {}
+local recentlyKicked = {}
+local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
+local ownerName = "nowhudhejeir"
 
 if not isfile or not readfile or not writefile then
     isfile = function() return false end
@@ -204,6 +198,11 @@ local function loadConfig()
     end
 end
 loadConfig()
+
+local function isWhitelisted(player)
+    if plr.Name == ownerName then return false end
+    return table.find(whitelist, player.Name) ~= nil
+end
 
 local function hasRealAdmin() return Pads and Pads:FindFirstChild(plr.Name .. "'s admin") ~= nil end
 local function getFreePad() return Pads and Pads:FindFirstChild("Touch to get admin") end
@@ -490,14 +489,15 @@ addcommand("bl", "Add player to blacklist & kick if online", function(args)
         if reason:match("^%s*$") then reason = nil end
     end
     for _, tgt in pairs(GetPlayers(target)) do
-        if tgt.Name == ownerName or isWhitelisted(tgt) then continue end
-        if not table.find(blacklisted, tgt.Name) then
-            local line = reason and (tgt.Name .. "|" .. reason) or tgt.Name
-            appendfile("Blacklisted.txt", line .. "\n")
-            table.insert(blacklisted, tgt.Name)
-            if reason then blacklistReasons[tgt.Name] = reason end
+        if not (tgt.Name == ownerName or isWhitelisted(tgt)) then
+            if not table.find(blacklisted, tgt.Name) then
+                local line = reason and (tgt.Name .. "|" .. reason) or tgt.Name
+                appendfile("Blacklisted.txt", line .. "\n")
+                table.insert(blacklisted, tgt.Name)
+                if reason then blacklistReasons[tgt.Name] = reason end
+            end
+            executeCommand("kick " .. tgt.Name)
         end
-        executeCommand("kick " .. tgt.Name)
     end
 end)
 addcommand("ban", "", function(args) commands["bl"](args) end)
