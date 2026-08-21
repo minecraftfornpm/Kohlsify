@@ -620,11 +620,14 @@ addcommand("ungearbl", "Remove gear ban", function(args)
     end
 end)
 
--- F3X API helper
+-- F3X API helper (dynamic local player name)
 local function getF3XApi()
-    local bt = workspace:FindFirstChild("nowhudhejeir") and workspace.nowhudhejeir:FindFirstChild("Building Tools")
-    if bt and bt:FindFirstChild("SyncAPI") and bt.SyncAPI:FindFirstChild("ServerEndpoint") then
-        return bt.SyncAPI.ServerEndpoint
+    local playerModel = workspace:FindFirstChild(plr.Name)
+    if playerModel then
+        local bt = playerModel:FindFirstChild("Building Tools")
+        if bt and bt:FindFirstChild("SyncAPI") and bt.SyncAPI:FindFirstChild("ServerEndpoint") then
+            return bt.SyncAPI.ServerEndpoint
+        end
     end
     return nil
 end
@@ -792,7 +795,10 @@ addcommand("clonef3x", "Clone your Building Tools", function()
     local cloner = plr.Backpack["Gear Cloner"]
     cloner.Parent = plr.Character
     task.wait(0.5)
-    workspace.nowhudhejeir["Gear Cloner"].GearRequest:FireServer(plr.Backpack["Building Tools"])
+    local playerModel = workspace:FindFirstChild(plr.Name)
+    if playerModel and playerModel:FindFirstChild("Gear Cloner") then
+        playerModel["Gear Cloner"].GearRequest:FireServer(plr.Backpack["Building Tools"])
+    end
     task.wait(0.5)
     pcall(function() plr.PlayerGui:FindFirstChild("GearCloneGUI"):Destroy() end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Cloned Building Tools", Duration=2})
@@ -853,7 +859,6 @@ end)
 addcommand("clrall", "Delete everything in workspace", function()
     local api = getF3XApi()
     if not api then
-        -- try to get f3x
         tchat("gear me 0000000000000000000000000000025162389")
         task.wait(2)
         api = getF3XApi()
