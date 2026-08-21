@@ -7,7 +7,7 @@ Open source admin script for Kohls Admin House X.
 Just paste this line into your executor:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Loader.lua"))()
 ```
 
 It gets updates now and then, and it's completely free to use.
