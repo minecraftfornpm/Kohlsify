@@ -427,7 +427,7 @@ spawn(function()
                             end
                         end
                         if found then
-                            tchat("reset " .. p.Name)
+                            chat("reset " .. p.Name)
                         end
                     end
                 end
@@ -474,7 +474,7 @@ local function handleBannedPlayer(p)
             chat(p.DisplayName .. " you have been in blacklist")
         end
         task.wait(2)
-        tchat("respawn " .. p.Name)
+        chat("respawn " .. p.Name)
         executeCommand("kick " .. p.Name)
     end
 end
@@ -513,13 +513,13 @@ addcommand("unbl", "", function(args) commands["unban"](args) end)
 addcommand("fpunish", "Fake punish a player", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        tchat("unff "..tgt.Name) tchat("freeze "..tgt.Name) tchat("invisible "..tgt.Name)
+        chat("unff "..tgt.Name) chat("freeze "..tgt.Name) chat("invisible "..tgt.Name)
     end
 end)
 addcommand("spam", "Spam a message", function(args)
     local msg = table.concat(args, " ") if msg == "" then return end
     if spamConnection then spamConnection:Disconnect() end
-    spamConnection = game:GetService("RunService").Heartbeat:Connect(function() tchat(msg) end)
+    spamConnection = game:GetService("RunService").Heartbeat:Connect(function() chat(msg) end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Spam started: "..msg, Duration=2})
 end)
 addcommand("unspam", "Stop spamming", function()
@@ -537,13 +537,13 @@ addcommand("cage", "Cage a player", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
             _G.cagecheck = false
-            tchat("gear me 000000000000000000000000000000000000000000082357101")
+            chat("gear me 000000000000000000000000000000000000000000082357101")
             repeat task.wait() until plr.Backpack:FindFirstChild('PortableJustice')
             plr.Backpack.PortableJustice.Parent = plr.Character
             repeat task.wait() until workspace:FindFirstChild(plr.Name) and workspace[plr.Name]:FindFirstChild('PortableJustice') and workspace[plr.Name].PortableJustice:FindFirstChild('MouseClick')
             local oldpos = plr.Character.HumanoidRootPart.CFrame
             plr.Character.HumanoidRootPart.CFrame = tgt.Character.HumanoidRootPart.CFrame
-            tchat('unff '..tgt.Name)
+            chat('unff '..tgt.Name)
             repeat
                 coroutine.wrap(function() workspace[plr.Name].PortableJustice.MouseClick:FireServer(workspace[tgt.Name]) end)()
                 task.wait()
@@ -577,10 +577,10 @@ addcommand("gearbl", "Gear ban a player", function(args)
     local xplayer = args[1] if not xplayer then return end
     local xplr = GetPlayers(xplayer)[1]
     if not xplr then return end
-    tchat("gear me 000000000000000000000000000000000000000000082357101")
-    tchat("unff " .. xplr.Name)
-    tchat("speed " .. xplr.Name .. " 0")
-    tchat("unfly " .. xplr.Name)
+    chat("gear me 000000000000000000000000000000000000000000082357101")
+    chat("unff " .. xplr.Name)
+    chat("speed " .. xplr.Name .. " 0")
+    chat("unfly " .. xplr.Name)
     task.wait(0.5)
     local pos = plr.Character.HumanoidRootPart.CFrame
     plr.Character.HumanoidRootPart.CFrame = xplr.Character.HumanoidRootPart.CFrame
@@ -590,11 +590,11 @@ addcommand("gearbl", "Gear ban a player", function(args)
     tool.Parent = plr.Character
     tool.MouseClick:FireServer(cappy)
     task.wait(1)
-    tchat("reload " .. xplr.Name)
-    tchat("h \n\n\n\n\n " .. xplr.DisplayName .. " got gearbanned! \n\n\n\n\n")
+    chat("reload " .. xplr.Name)
+    chat("h \n\n\n\n\n " .. xplr.DisplayName .. " got gearbanned! \n\n\n\n\n")
     tool:Destroy()
     plr.Character.HumanoidRootPart.CFrame = pos
-    tchat("ungear me")
+    chat("ungear me")
     pcall(function() plr.PlayerGui:FindFirstChild("HelpGui"):Destroy() end)
 end)
 addcommand("gearban", "", function(args) commands["gearbl"](args) end)
@@ -604,16 +604,16 @@ addcommand("ungearbl", "Remove gear ban", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
-            tchat("ungear me") tchat("tp " .. tgt.Name .. " me") tchat("speed " .. tgt.Name .. " 0")
+            chat("ungear me") chat("tp " .. tgt.Name .. " me") chat("speed " .. tgt.Name .. " 0")
             task.wait(0.5)
-            tchat("gear me 0000000000000000000000000000000000000000000071037101")
+            chat("gear me 0000000000000000000000000000000000000000000071037101")
             repeat task.wait() until plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             local ungear = plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             task.wait() ungear.Parent = plr.Character
             task.wait(0.5)
             plr.Character.DaggerOfShatteredDimensions.Remote:FireServer(Enum.KeyCode.Q)
             task.wait(0.5)
-            tchat("ungear me") tchat("speed " .. tgt.Name .. " 16")
+            chat("ungear me") chat("speed " .. tgt.Name .. " 16")
         end)
     end
 end)
@@ -639,12 +639,14 @@ addcommand("regen", "Click regen button", function()
 end)
 
 addcommand("fixregen", "Move regen to workspace and delete it", function()
-    tchat("f3x")
+    chat("f3x")
     task.wait(2)
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
     task.wait(0.5)
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    if tool then tool.Parent = plr.Character task.wait(0.3) end
     if plr.Backpack:FindFirstChild("Building Tools") then
         local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
         pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
@@ -666,12 +668,14 @@ local function GetNil(Name, DebugId)
 end
 
 addcommand("rmoveregen", "Remove regen (move to nil)", function()
-    tchat("f3x")
+    chat("f3x")
     task.wait(2)
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
     task.wait(0.5)
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    if tool then tool.Parent = plr.Character task.wait(0.3) end
     local event = GetNil("ServerEndpoint", "1_678455")
     if event then
         pcall(function()
@@ -708,12 +712,12 @@ addcommand("deletetool", "Get delete tool", function()
             local function movepart()
                 local cf = plr.Character.HumanoidRootPart local looping = true
                 spawn(function() while true do game:GetService("RunService").Heartbeat:Wait() pcall(function() plr.Character.Humanoid:ChangeState(11) cf.CFrame = target.CFrame * CFrame.new(-(target.Size.X/2)-(plr.Character.Torso.Size.X/2),0,0) end) if not looping then break end end end)
-                spawn(function() while looping do wait(0.1) tchat("unpunish me") end end)
+                spawn(function() while looping do wait(0.1) chat("unpunish me") end end)
                 wait(0.25) looping = false
             end
             movepart()
             repeat wait() until plr.Character.Torso:FindFirstChild("Weld")
-            tchat("skydive me") wait(0.1) tchat("respawn me") wait(0.25)
+            chat("skydive me") wait(0.1) chat("respawn me") wait(0.25)
             game.Chat["Delete Tool"].Parent = plr.Backpack
             plr.Character.HumanoidRootPart.CFrame = prevcfarchive
             spawn(function() wait(3) if game.Chat:FindFirstChild("Delete Tool") then game.Chat["Delete Tool"]:Destroy() end end)
@@ -724,7 +728,7 @@ end)
 
 local function transferHotPotato(player)
     for _ = 1, 3 do
-        tchat("gear me 000000000000000000000000000000000000000000025741198")
+        chat("gear me 000000000000000000000000000000000000000000025741198")
         repeat task.wait() until plr.Backpack:FindFirstChild("HotPotato")
         local potato = plr.Backpack.HotPotato
         potato.Parent = plr.Character
@@ -753,12 +757,12 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
             if not tgt.Character then return end
-            tchat("freeze " .. tgt.Name)
-            tchat("size " .. tgt.Name .. " nan")
+            chat("freeze " .. tgt.Name)
+            chat("size " .. tgt.Name .. " nan")
             task.wait(0.1)
             transferHotPotato(tgt)
             task.wait(2)
-            tchat("reset " .. tgt.Name)
+            chat("reset " .. tgt.Name)
             task.wait(0.2)
             local nameMsg
             if reason then
@@ -766,7 +770,7 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
             else
                 nameMsg = "[†Køhlsîfy]\nKicked by " .. plr.DisplayName .. "\n" .. tgt.DisplayName
             end
-            tchat("name " .. tgt.Name .. " " .. nameMsg)
+            chat("name " .. tgt.Name .. " " .. nameMsg)
             recentlyKicked[tgt.Name] = true
         end)
     end
@@ -775,25 +779,25 @@ end)
 addcommand("kid", "Make a player small with candy", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("gear " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
+        spawn(function() chat("size " .. tgt.Name .. " 0.5") chat("gear " .. tgt.Name .. " candy") chat("name " .. tgt.Name .. " Good Kid") end)
     end
 end)
 
 addcommand("clonef3x", "Clone your Building Tools", function()
     if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
+        chat("f3x")
         task.wait(2)
     end
     if not plr.Backpack:FindFirstChild("Building Tools") then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X, maybe you need to wait?", Duration=3})
         return
     end
-    tchat("give me 000000000000000000000000000000000000000097161295")
+    chat("gear me 000000000000000000000000000000000000000097161295")
     repeat task.wait() until plr.Backpack:FindFirstChild("Gear Cloner")
     local cloner = plr.Backpack["Gear Cloner"]
     cloner.Parent = plr.Character
     task.wait(0.5)
-    workspace.nowhudhejeir["Gear Cloner"].GearRequest:FireServer(plr.Backpack["Building Tools"])
+    cloner.GearRequest:FireServer(plr.Backpack["Building Tools"])
     task.wait(0.5)
     pcall(function() plr.PlayerGui:FindFirstChild("GearCloneGUI"):Destroy() end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Cloned Building Tools", Duration=2})
@@ -852,9 +856,16 @@ addcommand("nok", "Start NOK loop (disable obby touch)", function()
 end)
 
 addcommand("clrall", "Delete everything in workspace", function()
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    if tool then
+        tool.Parent = plr.Character
+        task.wait(0.5)
+    end
     if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
+        chat("f3x")
         task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools")
+        if tool then tool.Parent = plr.Character task.wait(0.5) end
     end
     if not plr.Backpack:FindFirstChild("Building Tools") then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
@@ -876,17 +887,23 @@ addcommand("clrall", "Delete everything in workspace", function()
             end
         end
     end
-    pcall(function()
-        api:InvokeServer(table.unpack({[1] = "Remove", [2] = toRemove}))
-    end)
+    for _, v in ipairs(toRemove) do
+        pcall(function()
+            api:InvokeServer(table.unpack({[1] = "Remove", [2] = {v}}))
+        end)
+    end
     WindUI:Notify({Title="†Køhlsîfy", Content="Workspace cleared!", Duration=3})
 end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
 
 addcommand("fix", "Remove problematic seats and spawns", function()
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    if tool then tool.Parent = plr.Character task.wait(0.5) end
     if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
+        chat("f3x")
         task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools")
+        if tool then tool.Parent = plr.Character task.wait(0.5) end
     end
     if not plr.Backpack:FindFirstChild("Building Tools") then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
@@ -899,7 +916,9 @@ addcommand("fix", "Remove problematic seats and spawns", function()
             table.insert(toRemove, v)
         end
     end
-    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]=toRemove})) end)
+    for _, v in ipairs(toRemove) do
+        pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={v}})) end)
+    end
     WindUI:Notify({Title="†Køhlsîfy", Content="Seats and bottom spawns removed", Duration=3})
 end)
 
@@ -910,7 +929,7 @@ end)
 addcommand("unlockws", "", function(args) commands["unlockworkspace"](args) end)
 
 addcommand("nocam", "Break camera (shiftlock)", function()
-    tchat("gear me 000000000000000000000000000000000000000004842207161")
+    chat("gear me 000000000000000000000000000000000000000004842207161")
     repeat task.wait() until plr.Backpack:FindFirstChild("AR")
     plr.Backpack.AR.Parent = plr.Character
     task.wait(0.2)
@@ -926,7 +945,7 @@ addcommand("fcam", "Break a player's camera", function(args)
     plr.Character.HumanoidRootPart.CFrame = CFrame.new(99999,99999,99999)
     local part = Instance.new("Part", plr.Character)
     part.Anchored = true part.Size = Vector3.new(10,1,10) part.CFrame = plr.Character.HumanoidRootPart.CFrame * CFrame.new(0,-5,0)
-    tchat("gear me 000000000000000000000000000000000000000000094794847")
+    chat("gear me 000000000000000000000000000000000000000000094794847")
     repeat task.wait() until plr.Backpack:FindFirstChild("VampireVanquisher")
     local vv = plr.Backpack.VampireVanquisher
     vv.Parent = plr.Character
@@ -936,7 +955,7 @@ addcommand("fcam", "Break a player's camera", function(args)
         firetouchinterest(vv.Handle, cplr.Character.Head, 0)
         firetouchinterest(vv.Handle, cplr.Character.Head, 1)
     until plr:DistanceFromCharacter(cplr.Character.Head.Position) < 10
-    tchat("respawn me")
+    chat("respawn me")
 end)
 
 -- Sorry, this was taken from kohlslite
@@ -984,10 +1003,10 @@ end
 addcommand("fixcam", "Fix camera", function() FixCam() end)
 
 addcommand("slag", "Server lag (2 stones)", function()
-    tchat("ungear me")
+    chat("ungear me")
     task.wait(0.5)
-    tchat("gear me 000000000000000000000000000000000000000000059190534")
-    tchat("gear me 000000000000000000000000000000000000000000059190534")
+    chat("gear me 000000000000000000000000000000000000000000059190534")
+    chat("gear me 000000000000000000000000000000000000000000059190534")
     repeat task.wait() until #plr.Backpack:GetChildren() >= 2
     local tool1 = plr.Backpack:GetChildren()[1]
     local tool2 = plr.Backpack:GetChildren()[2]
@@ -1001,9 +1020,13 @@ end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
 addcommand("servercrash", "Crash server with many blocks", function()
+    local tool = plr.Backpack:FindFirstChild("Building Tools")
+    if tool then tool.Parent = plr.Character task.wait(0.5) end
     if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
+        chat("f3x")
         task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools")
+        if tool then tool.Parent = plr.Character task.wait(0.5) end
     end
     if not plr.Backpack:FindFirstChild("Building Tools") then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
@@ -1016,7 +1039,6 @@ addcommand("servercrash", "Crash server with many blocks", function()
             pcall(function()
                 api:InvokeServer("CreatePart", "Normal", pos, workspace.Tabby.Admin_House)
             end)
-            if i % 1000 == 0 then task.wait() end
         end
     end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Server crash initiated!", Duration=3})
@@ -1024,8 +1046,8 @@ end)
 addcommand("crash", "", function(args) commands["servercrash"](args) end)
 addcommand("shutdown", "", function(args) commands["servercrash"](args) end)
 
-addcommand("r15", "Switch to R15", function() tchat("!experiment adaptiver6 on") task.wait(2) tchat("unchar me") end)
-addcommand("r6", "Switch to R6", function() tchat("!experiment adaptiver6 off") end)
+addcommand("r15", "Switch to R15", function() chat("!experiment adaptiver6 on") task.wait(2) chat("unchar me") end)
+addcommand("r6", "Switch to R6", function() chat("!experiment adaptiver6 off") end)
 
 addcommand("ping", "Show ping in chat", function()
     local ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue() + 0.5)
@@ -1080,20 +1102,20 @@ addcommand("furry", "Make player furry", function(args)
     local target = args[1] if not target then return end
     local tgt = GetPlayers(target)[1]
     if not tgt then return end
-    tchat("char " .. tgt.Name .. " 18")
+    chat("char " .. tgt.Name .. " 18")
     task.wait(0.2)
-    tchat("paint " .. tgt.Name .. " Institutional white")
-    tchat("hat " .. tgt.Name .. " 10563319994")
-    tchat("hat " .. tgt.Name .. " 12578728695")
-    tchat("shirt " .. tgt.Name .. " 10571467676")
-    tchat("pants " .. tgt.Name .. " 10571468508")
+    chat("paint " .. tgt.Name .. " Institutional white")
+    chat("hat " .. tgt.Name .. " 10563319994")
+    chat("hat " .. tgt.Name .. " 12578728695")
+    chat("shirt " .. tgt.Name .. " 10571467676")
+    chat("pants " .. tgt.Name .. " 10571468508")
 end)
 
 addcommand("naked", "Paint player to skin color", function(args)
     local target = args[1] if not target then return end
     for _, v in pairs(GetPlayers(target)) do
         if v and v.Character and v.Character:FindFirstChild("Head") then
-            tchat("paint " .. v.Name .. " " .. v.Character.Head.BrickColor.Name)
+            chat("paint " .. v.Name .. " " .. v.Character.Head.BrickColor.Name)
         end
     end
 end)
@@ -1104,21 +1126,21 @@ addcommand("femify", "Make player feminine", function(args)
     local target = args[1] if not target then return end
     local tgt = GetPlayers(target)[1]
     if not tgt then return end
-    tchat("char " .. tgt.Name .. " 31342830")
+    chat("char " .. tgt.Name .. " 31342830")
     task.wait(0.2)
     repeat task.wait() until tgt.Character and tgt.Character:FindFirstChild("Ultra-Fabulous Hair")
     task.wait(0.3)
-    tchat("removehats " .. tgt.Name)
+    chat("removehats " .. tgt.Name)
     task.wait()
-    tchat("paint " .. tgt.Name .. " Institutional white")
+    chat("paint " .. tgt.Name .. " Institutional white")
     task.wait()
-    tchat("hat " .. tgt.Name .. " 7141674388")
+    chat("hat " .. tgt.Name .. " 7141674388")
     task.wait()
-    tchat("hat " .. tgt.Name .. " 7033871971")
+    chat("hat " .. tgt.Name .. " 7033871971")
     task.wait()
-    tchat("shirt " .. tgt.Name .. " 5933990311")
+    chat("shirt " .. tgt.Name .. " 5933990311")
     task.wait()
-    tchat("pants " .. tgt.Name .. " 7219538593")
+    chat("pants " .. tgt.Name .. " 7219538593")
 end)
 
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
@@ -1252,7 +1274,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end
+end)
 
 if permEnabled then permLoop() end
 
