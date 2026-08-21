@@ -5,9 +5,6 @@
     10% code it kohlslite, plsnoleak (thanks "Ultra", "Ts2021")
 ]]
 
-if getgenv().KohlsifyLoaded then return end
-getgenv().KohlsifyLoaded = true
-
 if game.PlaceId ~= 14747334292 then
     game.StarterGui:SetCore("SendNotification", {
         Title = "†Køhlsîfy";
@@ -162,7 +159,6 @@ local antis = {
     antiblind = false,
 }
 
--- Объявляем все переменные ДО loadConfig
 local configFolder = "kohlsify"
 local configFile = configFolder .. "/config.json"
 if not isfolder(configFolder) then makefolder(configFolder) end
@@ -1196,7 +1192,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end)
+end
 
 if permEnabled then permLoop() end
 
