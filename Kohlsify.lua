@@ -71,6 +71,18 @@ local function executeCommand(text)
     end
 end
 
+-- Declare whitelist before GetPlayers
+local blacklisted = {}
+local blacklistReasons = {}
+local recentlyKicked = {}
+local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
+local ownerName = "nowhudhejeir"
+
+local function isWhitelisted(player)
+    if plr.Name == ownerName then return false end
+    return table.find(whitelist, player.Name) ~= nil
+end
+
 function GetPlayers(target)
     local all = Players:GetPlayers()
     target = tostring(target or ""):lower()
@@ -105,12 +117,6 @@ function GetPlayers(target)
     end
     return result
 end
-
-local blacklisted = {}
-local blacklistReasons = {}
-local recentlyKicked = {}
-local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
-local ownerName = "nowhudhejeir"
 
 if not isfile or not readfile or not writefile then
     isfile = function() return false end
@@ -198,11 +204,6 @@ local function loadConfig()
     end
 end
 loadConfig()
-
-local function isWhitelisted(player)
-    if plr.Name == ownerName then return false end
-    return table.find(whitelist, player.Name) ~= nil
-end
 
 local function hasRealAdmin() return Pads and Pads:FindFirstChild(plr.Name .. "'s admin") ~= nil end
 local function getFreePad() return Pads and Pads:FindFirstChild("Touch to get admin") end
