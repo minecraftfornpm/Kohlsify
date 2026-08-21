@@ -1068,8 +1068,14 @@ end)
 -- UI
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
-    Title = "Commands",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove all TouchInterests\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
+    Title = "Commands 1",
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove all TouchInterests\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all"
+})
+
+local __commandsTab2 = Window:Tab({ Title = "Commands 2", Icon = "lucide:list" })
+__commandsTab2:Paragraph({
+    Title = "Commands 2",
+    Desc = "furry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
@@ -1192,7 +1198,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end
+end)
 
 if permEnabled then permLoop() end
 
