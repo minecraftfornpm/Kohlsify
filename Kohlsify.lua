@@ -2,7 +2,6 @@
     †Køhlsîfy - Open source script
     Only for Kohls admin house X (KAH X/14747334292)
     Made by nowhud (nowhudhejeir in roblox)
-    10% code it kohlslite, plsnoleak (thanks "Ultra", "Ts2021")
 ]]
 
 if getgenv().KohlsifyLoaded then return end
