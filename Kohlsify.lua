@@ -71,7 +71,6 @@ local function executeCommand(text)
     end
 end
 
--- Declare whitelist before GetPlayers
 local blacklisted = {}
 local blacklistReasons = {}
 local recentlyKicked = {}
