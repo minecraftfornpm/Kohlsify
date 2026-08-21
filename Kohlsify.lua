@@ -624,17 +624,37 @@ addcommand("regen", "Click regen button", function()
     if regen and regen:FindFirstChild("ClickDetector") then fireclickdetector(regen.ClickDetector) WindUI:Notify({Title="†Køhlsîfy", Content="Regen clicked", Duration=2}) end
 end)
 
-addcommand("fixregen", "Move regen to workspace and delete it", function()
+local function equipBuildingTools()
+    if not plr.Character then return nil end
+    local tool = plr.Character:FindFirstChild("Building Tools")
+    if tool then return tool end
+    tool = plr.Backpack:FindFirstChild("Building Tools")
+    if tool then
+        tool.Parent = plr.Character
+        task.wait(0.5)
+        return tool
+    end
     tchat("f3x")
     task.wait(2)
+    tool = plr.Backpack:FindFirstChild("Building Tools")
+    if not tool then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X, maybe you need to wait?", Duration=3})
+        return nil
+    end
+    tool.Parent = plr.Character
+    task.wait(0.5)
+    return tool
+end
+
+addcommand("fixregen", "Move regen to workspace and delete it", function()
+    local tool = equipBuildingTools()
+    if not tool then return end
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
     task.wait(0.5)
-    if plr.Backpack:FindFirstChild("Building Tools") then
-        local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-        pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
-    end
+    local api = workspace[plr.Name]["Building Tools"].SyncAPI.ServerEndpoint
+    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Regen reset", Duration=2})
 end)
 
@@ -652,8 +672,8 @@ local function GetNil(Name, DebugId)
 end
 
 addcommand("rmoveregen", "Remove regen (move to nil)", function()
-    tchat("f3x")
-    task.wait(2)
+    local tool = equipBuildingTools()
+    if not tool then return end
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
@@ -771,11 +791,11 @@ addcommand("kid", "Make a player small with candy", function(args)
 end)
 
 addcommand("clonef3x", "Clone your Building Tools", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
+    if not plr.Backpack:FindFirstChild("Building Tools") and not plr.Character:FindFirstChild("Building Tools") then
         tchat("f3x")
         task.wait(2)
     end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
+    if not plr.Backpack:FindFirstChild("Building Tools") and not plr.Character:FindFirstChild("Building Tools") then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X, maybe you need to wait?", Duration=3})
         return
     end
@@ -784,7 +804,7 @@ addcommand("clonef3x", "Clone your Building Tools", function()
     local cloner = plr.Backpack["Gear Cloner"]
     cloner.Parent = plr.Character
     task.wait(0.5)
-    workspace.nowhudhejeir["Gear Cloner"].GearRequest:FireServer(plr.Backpack["Building Tools"])
+    workspace.nowhudhejeir["Gear Cloner"].GearRequest:FireServer(plr.Backpack["Building Tools"] or plr.Character["Building Tools"])
     task.wait(0.5)
     pcall(function() plr.PlayerGui:FindFirstChild("GearCloneGUI"):Destroy() end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Cloned Building Tools", Duration=2})
@@ -843,15 +863,9 @@ addcommand("nok", "Start NOK loop (disable obby touch)", function()
 end)
 
 addcommand("clrall", "Delete everything in workspace", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
-        task.wait(2)
-    end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
-    end
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    local tool = equipBuildingTools()
+    if not tool then return end
+    local api = workspace[plr.Name]["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
     for _, v in ipairs(workspace:GetDescendants()) do
         if (v:IsA("Part") or v:IsA("Sphere") or v:IsA("Cylinder") or v:IsA("Wedge") or v:IsA("CornerWedge") or v:IsA("MeshPart") or v:IsA("Tool")) then
@@ -875,15 +889,9 @@ end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
 
 addcommand("fix", "Remove problematic seats and spawns", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
-        task.wait(2)
-    end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
-    end
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    local tool = equipBuildingTools()
+    if not tool then return end
+    local api = workspace[plr.Name]["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
     for _, v in ipairs(workspace:GetDescendants()) do
         if v:IsA("Seat") or (v.Name == "Spawn" and (v:IsA("BasePart") or v:IsA("Model")) and v:GetPivot().Y < -50) then
@@ -992,15 +1000,9 @@ end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
 addcommand("servercrash", "Crash server with many blocks", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        tchat("f3x")
-        task.wait(2)
-    end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
-    end
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    local tool = equipBuildingTools()
+    if not tool then return end
+    local api = workspace[plr.Name]["Building Tools"].SyncAPI.ServerEndpoint
     local pos = plr.Character and plr.Character.HumanoidRootPart and plr.Character.HumanoidRootPart.CFrame or CFrame.new(0, 5, 0)
     spawn(function()
         for i = 1, 1000000 do
@@ -1250,7 +1252,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end
+end)
 
 if permEnabled then permLoop() end
 
