@@ -111,6 +111,7 @@ end
 local blacklisted = {}
 local blacklistReasons = {}
 local recentlyKicked = {}
+local processedBanned = {}
 local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
 local ownerName = "nowhudhejeir"
 
@@ -165,6 +166,12 @@ local configFolder = "kohlsify"
 local configFile = configFolder .. "/config.json"
 if not isfolder(configFolder) then makefolder(configFolder) end
 
+local autoGod = false
+local autoForceField = false
+local autoName = false
+local showCommands = false
+local permEnabled = false
+
 local function saveConfig()
     local data = {
         antis = antis,
@@ -192,7 +199,6 @@ local function loadConfig()
 end
 loadConfig()
 
-local permEnabled = false
 local permCoroutine = nil
 
 local function isWhitelisted(player)
@@ -233,10 +239,6 @@ local function permLoop()
     end)
 end
 
-local autoGod = false
-local autoForceField = false
-local autoName = false
-
 local function sendName()
     if not autoName then return end
     local role = "User"
@@ -265,7 +267,7 @@ plr.CharacterAdded:Connect(function(chr)
             while autoGod or autoForceField do
                 if autoGod then
                     local hum = chr:FindFirstChild("Humanoid")
-                    if hum and hum.Health < 1000 then -- change condition to avoid spam
+                    if hum and hum.Health < 1000 then
                         tchat("god me")
                     end
                 end
@@ -451,8 +453,6 @@ game:GetService("Lighting").ChildAdded:Connect(function(child)
     end
 end)
 
-local showCommands = false
-
 addcommand("show", "Send commands to chat when using command bar", function()
     showCommands = true
     saveConfig()
@@ -465,7 +465,8 @@ addcommand("hide", "Stop sending commands to chat", function()
 end)
 
 local function handleBannedPlayer(p)
-    if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) then
+    if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) and not processedBanned[p.Name] then
+        processedBanned[p.Name] = true
         local reason = blacklistReasons[p.Name]
         if reason and reason ~= "" then
             chat(p.DisplayName .. " you have been in blacklist, reason: " .. reason)
@@ -501,6 +502,7 @@ addcommand("unban", "Remove player from blacklist", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         for i = #blacklisted, 1, -1 do if blacklisted[i] == tgt.Name then table.remove(blacklisted, i) end end
         blacklistReasons[tgt.Name] = nil
+        processedBanned[tgt.Name] = nil
         local content = readfile("Blacklisted.txt")
         local newContent = content:gsub(tgt.Name .. "[^\n]*\n", "")
         writefile("Blacklisted.txt", newContent)
@@ -535,7 +537,7 @@ addcommand("cage", "Cage a player", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
             _G.cagecheck = false
-            tchat("give me 000000000000000000000000000000000000000000082357101")
+            tchat("gear me 000000000000000000000000000000000000000000082357101")
             repeat task.wait() until plr.Backpack:FindFirstChild('PortableJustice')
             plr.Backpack.PortableJustice.Parent = plr.Character
             repeat task.wait() until workspace:FindFirstChild(plr.Name) and workspace[plr.Name]:FindFirstChild('PortableJustice') and workspace[plr.Name].PortableJustice:FindFirstChild('MouseClick')
@@ -575,7 +577,7 @@ addcommand("gearbl", "Gear ban a player", function(args)
     local xplayer = args[1] if not xplayer then return end
     local xplr = GetPlayers(xplayer)[1]
     if not xplr then return end
-    tchat("give me 000000000000000000000000000000000000000000082357101")
+    tchat("gear me 000000000000000000000000000000000000000000082357101")
     tchat("unff " .. xplr.Name)
     tchat("speed " .. xplr.Name .. " 0")
     tchat("unfly " .. xplr.Name)
@@ -604,7 +606,7 @@ addcommand("ungearbl", "Remove gear ban", function(args)
         spawn(function()
             tchat("ungear me") tchat("tp " .. tgt.Name .. " me") tchat("speed " .. tgt.Name .. " 0")
             task.wait(0.5)
-            tchat("give me 0000000000000000000000000000000000000000000071037101")
+            tchat("gear me 0000000000000000000000000000000000000000000071037101")
             repeat task.wait() until plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             local ungear = plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             task.wait() ungear.Parent = plr.Character
@@ -636,7 +638,6 @@ addcommand("regen", "Click regen button", function()
     if regen and regen:FindFirstChild("ClickDetector") then fireclickdetector(regen.ClickDetector) WindUI:Notify({Title="†Køhlsîfy", Content="Regen clicked", Duration=2}) end
 end)
 
--- New fixregen: move Regen to workspace, delete it so server respawns
 addcommand("fixregen", "Move regen to workspace and delete it", function()
     tchat("f3x")
     task.wait(2)
@@ -656,7 +657,6 @@ addcommand("tptoregen", "Teleport to regen", function()
     if regen and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then plr.Character.HumanoidRootPart.CFrame = regen.CFrame * CFrame.new(0, 2.5, 0) end
 end)
 
--- New rmoveregen: move Regen to nil using SyncMove
 local function GetNil(Name, DebugId)
     for _, Object in getnilinstances() do
         if Object.Name == Name and Object:GetDebugId() == DebugId then
@@ -724,7 +724,7 @@ end)
 
 local function transferHotPotato(player)
     for _ = 1, 3 do
-        tchat("give me 000000000000000000000000000000000000000000025741198")
+        tchat("gear me 000000000000000000000000000000000000000000025741198")
         repeat task.wait() until plr.Backpack:FindFirstChild("HotPotato")
         local potato = plr.Backpack.HotPotato
         potato.Parent = plr.Character
@@ -752,6 +752,7 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
     end
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
+            if not tgt.Character then return end
             tchat("freeze " .. tgt.Name)
             tchat("size " .. tgt.Name .. " nan")
             task.wait(0.1)
@@ -774,7 +775,7 @@ end)
 addcommand("kid", "Make a player small with candy", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("give " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
+        spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("gear " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
     end
 end)
 
@@ -799,13 +800,55 @@ addcommand("clonef3x", "Clone your Building Tools", function()
 end)
 addcommand("cf3x", "", function(args) commands["clonef3x"](args) end)
 
-addcommand("nok", "Remove all TouchInterests", function()
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("TouchInterest") then
-            pcall(function() v:Destroy() end)
+-- NOK loop replacement
+local __nokEnabled = true
+local __nokCoroutine = nil
+
+local function __nokLoop()
+    if __nokCoroutine then task.cancel(__nokCoroutine) end
+    __nokCoroutine = task.spawn(function()
+        while __nokEnabled do
+            pcall(function()
+                local obby = nil
+                local terrain = workspace:FindFirstChild("Terrain")
+                if terrain then
+                    local gameFolder = terrain:FindFirstChild("_Game")
+                    if gameFolder then
+                        local ws = gameFolder:FindFirstChild("Workspace")
+                        if ws then
+                            obby = ws:FindFirstChild("Obby")
+                        end
+                    end
+                end
+                if not obby then
+                    obby = workspace:FindFirstChild("Tabby") and workspace.Tabby:FindFirstChild("Admin_House") and workspace.Tabby.Admin_House:FindFirstChild("Obby")
+                end
+                if obby then
+                    for _, child in ipairs(obby:GetChildren()) do
+                        if child:IsA("BasePart") then
+                            child.CanTouch = false
+                        end
+                    end
+                end
+                local obbyBox = workspace:FindFirstChild("Tabby") and workspace.Tabby:FindFirstChild("Admin_House") and workspace.Tabby.Admin_House:FindFirstChild("Obby Box")
+                if obbyBox then
+                    for i=1,4 do
+                        local part = obbyBox:GetChildren()[i]
+                        if part and part:IsA("BasePart") then
+                            part.CanTouch = false
+                        end
+                    end
+                end
+            end)
+            task.wait(1)
         end
-    end
-    WindUI:Notify({Title="†Køhlsîfy", Content="All TouchInterests removed!", Duration=3})
+    end)
+end
+
+addcommand("nok", "Start NOK loop (disable obby touch)", function()
+    __nokEnabled = true
+    __nokLoop()
+    WindUI:Notify({Title="†Køhlsîfy", Content="NOK loop started", Duration=2})
 end)
 
 addcommand("clrall", "Delete everything in workspace", function()
@@ -867,7 +910,7 @@ end)
 addcommand("unlockws", "", function(args) commands["unlockworkspace"](args) end)
 
 addcommand("nocam", "Break camera (shiftlock)", function()
-    tchat("give me 000000000000000000000000000000000000000004842207161")
+    tchat("gear me 000000000000000000000000000000000000000004842207161")
     repeat task.wait() until plr.Backpack:FindFirstChild("AR")
     plr.Backpack.AR.Parent = plr.Character
     task.wait(0.2)
@@ -883,7 +926,7 @@ addcommand("fcam", "Break a player's camera", function(args)
     plr.Character.HumanoidRootPart.CFrame = CFrame.new(99999,99999,99999)
     local part = Instance.new("Part", plr.Character)
     part.Anchored = true part.Size = Vector3.new(10,1,10) part.CFrame = plr.Character.HumanoidRootPart.CFrame * CFrame.new(0,-5,0)
-    tchat("give me 000000000000000000000000000000000000000000094794847")
+    tchat("gear me 000000000000000000000000000000000000000000094794847")
     repeat task.wait() until plr.Backpack:FindFirstChild("VampireVanquisher")
     local vv = plr.Backpack.VampireVanquisher
     vv.Parent = plr.Character
@@ -943,8 +986,8 @@ addcommand("fixcam", "Fix camera", function() FixCam() end)
 addcommand("slag", "Server lag (2 stones)", function()
     tchat("ungear me")
     task.wait(0.5)
-    tchat("give me 000000000000000000000000000000000000000000059190534")
-    tchat("give me 000000000000000000000000000000000000000000059190534")
+    tchat("gear me 000000000000000000000000000000000000000000059190534")
+    tchat("gear me 000000000000000000000000000000000000000000059190534")
     repeat task.wait() until #plr.Backpack:GetChildren() >= 2
     local tool1 = plr.Backpack:GetChildren()[1]
     local tool2 = plr.Backpack:GetChildren()[2]
@@ -1078,11 +1121,10 @@ addcommand("femify", "Make player feminine", function(args)
     tchat("pants " .. tgt.Name .. " 7219538593")
 end)
 
--- UI: split commands into two paragraphs
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove all TouchInterests\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server"
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - start NOK loop\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server"
 })
 
 __commandsTab:Paragraph({
@@ -1214,4 +1256,4 @@ end
 
 if permEnabled then permLoop() end
 
-commands["nok"]({})
+__nokLoop()
