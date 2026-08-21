@@ -2,7 +2,7 @@
     †Køhlsîfy - Open source script
     Only for Kohls admin house X (KAH X/14747334292)
     Made by nowhud (nowhudhejeir in roblox)
-    10% script it "kohlslite", "plsnoleak" (thanks Ultra, Ts2021)
+    10% code it kohlslite, plsnoleak (thanks "Ultra", "Ts2021")
 ]]
 
 if getgenv().KohlsifyLoaded then return end
@@ -218,16 +218,21 @@ local function permLoop()
     if permCoroutine then task.cancel(permCoroutine) end
     permCoroutine = task.spawn(function()
         while permEnabled do
-            if not hasRealAdmin() then
-                local free = getFreePad()
-                if free then
-                    claimPad(free)
-                else
-                    if Admin and Admin:FindFirstChild("Regen") and Admin.Regen:FindFirstChild("ClickDetector") then
-                        fireclickdetector(Admin.Regen.ClickDetector)
-                        task.wait(0.3)
+            local success = pcall(function()
+                if not hasRealAdmin() then
+                    local free = getFreePad()
+                    if free then
+                        claimPad(free)
+                    else
+                        if Admin and Admin:FindFirstChild("Regen") and Admin.Regen:FindFirstChild("ClickDetector") then
+                            fireclickdetector(Admin.Regen.ClickDetector)
+                            task.wait(0.3)
+                        end
                     end
                 end
+            end)
+            if not success then
+                task.wait(1) -- wait and retry
             end
             task.wait(0.1)
         end
@@ -637,31 +642,43 @@ addcommand("regen", "Click regen button", function()
     local regen = Admin and Admin:FindFirstChild("Regen")
     if regen and regen:FindFirstChild("ClickDetector") then fireclickdetector(regen.ClickDetector) WindUI:Notify({Title="†Køhlsîfy", Content="Regen clicked", Duration=2}) end
 end)
-addcommand("fixregen", "Move regen to spawn", function()
-    local regen = Admin and Admin:FindFirstChild("Regen")
-    if regen then
-        regen.CFrame = CFrame.new(-7.16500044, 5.42999268, 91.7430038) * CFrame.Angles(math.rad(-90), math.rad(0), math.rad(-90))
-        WindUI:Notify({Title="†Køhlsîfy", Content="Regen moved to default position", Duration=2})
+
+addcommand("rmoveregen", "Remove regen by moving to workspace and deleting", function()
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
+        task.wait(2)
     end
-end)
-addcommand("tptoregen", "Teleport to regen", function()
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
     local regen = Admin and Admin:FindFirstChild("Regen")
-    if regen and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then plr.Character.HumanoidRootPart.CFrame = regen.CFrame * CFrame.new(0, 2.5, 0) end
+    if not regen then return end
+    regen.Parent = workspace
+    task.wait(0.1)
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
+    WindUI:Notify({Title="†Køhlsîfy", Content="Regen removed", Duration=2})
 end)
-addcommand("rmoveregen", "Remove regen", function()
+
+addcommand("fixregen", "Fix regen by deleting it so server restores default", function()
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        tchat("f3x")
+        task.wait(2)
+    end
+    if not plr.Backpack:FindFirstChild("Building Tools") then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
     local regen = Admin and Admin:FindFirstChild("Regen")
-    if regen and regen.CFrame.Y < 500 then
-        spawn(function()
-            local chr = plr.Character
-            if not chr or not chr:FindFirstChild("Humanoid") then return end
-            local cf = chr.HumanoidRootPart
-            local looping = true
-            spawn(function() while true do game:GetService("RunService").Heartbeat:Wait() pcall(function() chr.Humanoid:ChangeState(11) cf.CFrame = regen.CFrame * CFrame.new(-(regen.Size.X/2)-(chr.Torso.Size.X/2),0,0) end) if not looping then break end end end)
-            spawn(function() while looping do wait(0.1) tchat("unpunish me") end end)
-            wait(0.3) looping = false tchat("trip me") wait(0.2) tchat("respawn me")
-        end)
-    else WindUI:Notify({Title="†Køhlsîfy", Content="Regen already moved or not found", Duration=2}) end
+    if not regen then return end
+    regen.Parent = workspace
+    task.wait(0.1)
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={workspace.Regen}})) end)
+    WindUI:Notify({Title="†Køhlsîfy", Content="Regen fixed (will restore)", Duration=2})
 end)
+
 addcommand("deletetool", "Get delete tool", function()
     local btool = Instance.new("Tool", plr.Backpack)
     local SelectionBox = Instance.new("SelectionBox", workspace)
@@ -812,6 +829,7 @@ addcommand("clrall", "Delete everything in workspace", function()
     WindUI:Notify({Title="†Køhlsîfy", Content="Workspace cleared!", Duration=3})
 end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
+
 addcommand("fix", "Remove problematic seats and spawns", function()
     if not plr.Backpack:FindFirstChild("Building Tools") then
         tchat("f3x")
@@ -941,11 +959,11 @@ addcommand("servercrash", "Crash the server with many blocks", function()
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local pos = plr.Character and plr.Character.HumanoidRootPart and plr.Character.HumanoidRootPart.CFrame or CFrame.new(0, 5, 0)
     spawn(function()
-        for i = 1, 1000000 do
+        for i = 1, 100000 do
             pcall(function()
-                api:InvokeServer(table.unpack({[1]="Create", [2]={"Part", pos}}))
+                api:InvokeServer("CreatePart", "Normal", pos, workspace.Tabby.Admin_House)
             end)
-            if i % 1000 == 0 then task.wait() end
+            if i % 500 == 0 then task.wait() end
         end
     end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Server crash initiated!", Duration=3})
@@ -1177,7 +1195,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end
+end)
 
 if permEnabled then permLoop() end
 
