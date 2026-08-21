@@ -5,6 +5,9 @@
     10% code it kohlslite, plsnoleak (thanks "Ultra", "Ts2021")
 ]]
 
+if getgenv().KohlsifyLoaded then return end
+getgenv().KohlsifyLoaded = true
+
 if game.PlaceId ~= 14747334292 then
     game.StarterGui:SetCore("SendNotification", {
         Title = "†Køhlsîfy";
@@ -71,17 +74,6 @@ local function executeCommand(text)
     end
 end
 
-local blacklisted = {}
-local blacklistReasons = {}
-local recentlyKicked = {}
-local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
-local ownerName = "nowhudhejeir"
-
-local function isWhitelisted(player)
-    if plr.Name == ownerName then return false end
-    return table.find(whitelist, player.Name) ~= nil
-end
-
 function GetPlayers(target)
     local all = Players:GetPlayers()
     target = tostring(target or ""):lower()
@@ -116,6 +108,12 @@ function GetPlayers(target)
     end
     return result
 end
+
+local blacklisted = {}
+local blacklistReasons = {}
+local recentlyKicked = {}
+local whitelist = {"nowhudhejeir", "EgorYa900", "EgorYa900Alt", "PaulTheKinggg", "1love2dadw1"}
+local ownerName = "nowhudhejeir"
 
 if not isfile or not readfile or not writefile then
     isfile = function() return false end
@@ -168,15 +166,6 @@ local configFolder = "kohlsify"
 local configFile = configFolder .. "/config.json"
 if not isfolder(configFolder) then makefolder(configFolder) end
 
-local permEnabled = false
-local permCoroutine = nil
-local autoGod = false
-local autoForceField = false
-local autoName = false
-local showCommands = false
-local cageLoops = {}
-local spamConnection = nil
-
 local function saveConfig()
     local data = {
         antis = antis,
@@ -204,6 +193,14 @@ local function loadConfig()
 end
 loadConfig()
 
+local permEnabled = false
+local permCoroutine = nil
+
+local function isWhitelisted(player)
+    if plr.Name == ownerName then return false end
+    return table.find(whitelist, player.Name) ~= nil
+end
+
 local function hasRealAdmin() return Pads and Pads:FindFirstChild(plr.Name .. "'s admin") ~= nil end
 local function getFreePad() return Pads and Pads:FindFirstChild("Touch to get admin") end
 local function claimPad(pad)
@@ -221,7 +218,7 @@ local function permLoop()
     if permCoroutine then task.cancel(permCoroutine) end
     permCoroutine = task.spawn(function()
         while permEnabled do
-            local success = pcall(function()
+            pcall(function()
                 if not hasRealAdmin() then
                     local free = getFreePad()
                     if free then
@@ -234,13 +231,14 @@ local function permLoop()
                     end
                 end
             end)
-            if not success then
-                task.wait(1)
-            end
             task.wait(0.1)
         end
     end)
 end
+
+local autoGod = false
+local autoForceField = false
+local autoName = false
 
 local function sendName()
     if not autoName then return end
@@ -456,6 +454,8 @@ game:GetService("Lighting").ChildAdded:Connect(function(child)
     end
 end)
 
+local showCommands = false
+
 addcommand("show", "Send commands to chat when using command bar", function()
     showCommands = true
     saveConfig()
@@ -489,15 +489,14 @@ addcommand("bl", "Add player to blacklist & kick if online", function(args)
         if reason:match("^%s*$") then reason = nil end
     end
     for _, tgt in pairs(GetPlayers(target)) do
-        if not (tgt.Name == ownerName or isWhitelisted(tgt)) then
-            if not table.find(blacklisted, tgt.Name) then
-                local line = reason and (tgt.Name .. "|" .. reason) or tgt.Name
-                appendfile("Blacklisted.txt", line .. "\n")
-                table.insert(blacklisted, tgt.Name)
-                if reason then blacklistReasons[tgt.Name] = reason end
-            end
-            executeCommand("kick " .. tgt.Name)
+        if tgt.Name == ownerName or isWhitelisted(tgt) then continue end
+        if not table.find(blacklisted, tgt.Name) then
+            local line = reason and (tgt.Name .. "|" .. reason) or tgt.Name
+            appendfile("Blacklisted.txt", line .. "\n")
+            table.insert(blacklisted, tgt.Name)
+            if reason then blacklistReasons[tgt.Name] = reason end
         end
+        executeCommand("kick " .. tgt.Name)
     end
 end)
 addcommand("ban", "", function(args) commands["bl"](args) end)
@@ -1066,15 +1065,13 @@ addcommand("femify", "Make player feminine", function(args)
     tchat("pants " .. tgt.Name .. " 7219538593")
 end)
 
--- UI
+-- UI: Commands tab with two paragraphs
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
     Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - remove all TouchInterests\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all"
 })
-
-local __commandsTab2 = Window:Tab({ Title = "Commands 2", Icon = "lucide:list" })
-__commandsTab2:Paragraph({
+__commandsTab:Paragraph({
     Title = "Commands 2",
     Desc = "furry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
 })
