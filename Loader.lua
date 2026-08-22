@@ -1,54 +1,5 @@
 local filePath = "kohlsify/loader.txt"
 
-local function loadVersion(version)
-    if version == "Release" then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua"))()
-    elseif version == "Beta" then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/KohlsifyBeta.lua"))()
-        task.delay(5, function()
-            if not getgenv().KohlsifyLoaded then
-                local notificationGui = Instance.new("ScreenGui")
-                notificationGui.Name = "NotificationGui"
-                notificationGui.Parent = game.CoreGui
-
-                local frame = Instance.new("Frame")
-                frame.Size = UDim2.new(0, 350, 0, 150)
-                frame.Position = UDim2.new(0.5, -175, 0.5, -75)
-                frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-                frame.Parent = notificationGui
-
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1, 0, 0, 40)
-                title.BackgroundTransparency = 1
-                title.Text = "script is no started, load release?"
-                title.TextColor3 = Color3.new(1, 1, 1)
-                title.Parent = frame
-
-                local loadBtn = Instance.new("TextButton")
-                loadBtn.Size = UDim2.new(0, 100, 0, 30)
-                loadBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
-                loadBtn.Text = "load"
-                loadBtn.Parent = frame
-
-                local noBtn = Instance.new("TextButton")
-                noBtn.Size = UDim2.new(0, 100, 0, 30)
-                noBtn.Position = UDim2.new(0.55, 0, 0.7, 0)
-                noBtn.Text = "no"
-                noBtn.Parent = frame
-
-                loadBtn.Activated:Connect(function()
-                    notificationGui:Destroy()
-                    loadVersion("Release")
-                end)
-
-                noBtn.Activated:Connect(function()
-                    notificationGui:Destroy()
-                end)
-            end
-        end)
-    end
-end
-
 local function showChoiceDialog()
     local dialog = Instance.new("ScreenGui")
     dialog.Name = "VersionDialog"
@@ -93,29 +44,115 @@ local function showChoiceDialog()
         rememberCheck.BackgroundColor3 = remember and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
     end)
 
-    local function choose(version)
+    local function handleChoice(version)
         dialog:Destroy()
         if remember then
             writefile(filePath, version)
         end
-        loadVersion(version)
+        if version == "Release" then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua"))()
+        elseif version == "Beta" then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/KohlsifyBeta.lua"))()
+            task.delay(5, function()
+                if not getgenv().KohlsifyLoaded then
+                    local notificationGui = Instance.new("ScreenGui")
+                    notificationGui.Name = "NotificationGui"
+                    notificationGui.Parent = game.CoreGui
+
+                    local nFrame = Instance.new("Frame")
+                    nFrame.Size = UDim2.new(0, 350, 0, 150)
+                    nFrame.Position = UDim2.new(0.5, -175, 0.5, -75)
+                    nFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                    nFrame.Parent = notificationGui
+
+                    local nTitle = Instance.new("TextLabel")
+                    nTitle.Size = UDim2.new(1, 0, 0, 40)
+                    nTitle.BackgroundTransparency = 1
+                    nTitle.Text = "script is no started, load release?"
+                    nTitle.TextColor3 = Color3.new(1, 1, 1)
+                    nTitle.Parent = nFrame
+
+                    local loadBtn = Instance.new("TextButton")
+                    loadBtn.Size = UDim2.new(0, 100, 0, 30)
+                    loadBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
+                    loadBtn.Text = "load"
+                    loadBtn.Parent = nFrame
+
+                    local noBtn = Instance.new("TextButton")
+                    noBtn.Size = UDim2.new(0, 100, 0, 30)
+                    noBtn.Position = UDim2.new(0.55, 0, 0.7, 0)
+                    noBtn.Text = "no"
+                    noBtn.Parent = nFrame
+
+                    loadBtn.Activated:Connect(function()
+                        notificationGui:Destroy()
+                        loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua"))()
+                    end)
+
+                    noBtn.Activated:Connect(function()
+                        notificationGui:Destroy()
+                    end)
+                end
+            end)
+        end
     end
 
     betaBtn.Activated:Connect(function()
-        choose("Beta")
+        handleChoice("Beta")
     end)
 
     releaseBtn.Activated:Connect(function()
-        choose("Release")
+        handleChoice("Release")
     end)
 end
 
 if isfile(filePath) then
     local choice = readfile(filePath)
     if choice == "Beta" then
-        loadVersion("Beta")
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/KohlsifyBeta.lua"))()
+        task.delay(5, function()
+            if not getgenv().KohlsifyLoaded then
+                local notificationGui = Instance.new("ScreenGui")
+                notificationGui.Name = "NotificationGui"
+                notificationGui.Parent = game.CoreGui
+
+                local nFrame = Instance.new("Frame")
+                nFrame.Size = UDim2.new(0, 350, 0, 150)
+                nFrame.Position = UDim2.new(0.5, -175, 0.5, -75)
+                nFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                nFrame.Parent = notificationGui
+
+                local nTitle = Instance.new("TextLabel")
+                nTitle.Size = UDim2.new(1, 0, 0, 40)
+                nTitle.BackgroundTransparency = 1
+                nTitle.Text = "script is no started, load release?"
+                nTitle.TextColor3 = Color3.new(1, 1, 1)
+                nTitle.Parent = nFrame
+
+                local loadBtn = Instance.new("TextButton")
+                loadBtn.Size = UDim2.new(0, 100, 0, 30)
+                loadBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
+                loadBtn.Text = "load"
+                loadBtn.Parent = nFrame
+
+                local noBtn = Instance.new("TextButton")
+                noBtn.Size = UDim2.new(0, 100, 0, 30)
+                noBtn.Position = UDim2.new(0.55, 0, 0.7, 0)
+                noBtn.Text = "no"
+                noBtn.Parent = nFrame
+
+                loadBtn.Activated:Connect(function()
+                    notificationGui:Destroy()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua"))()
+                end)
+
+                noBtn.Activated:Connect(function()
+                    notificationGui:Destroy()
+                end)
+            end
+        end)
     elseif choice == "Release" then
-        loadVersion("Release")
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua"))()
     else
         showChoiceDialog()
     end
