@@ -257,6 +257,13 @@ local function checkNameModel()
     end
 end
 
+spawn(function()
+    while true do
+        task.wait(2)
+        if autoName then checkNameModel() end
+    end
+end)
+
 local lastPos = nil
 local respawnedRecently = false
 
@@ -602,7 +609,11 @@ addcommand("unbl", "", function(args) commands["unban"](args) end)
 addcommand("fpunish", "Fake punish a player", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
+        tchat("reset " .. tgt.Name)
         tchat("unff "..tgt.Name) tchat("freeze "..tgt.Name) tchat("invisible "..tgt.Name)
+        tchat("noclip " .. tgt.Name)
+        tchat("ungear " .. tgt.Name)
+        tchat("unname " .. tgt.Name)
     end
 end)
 addcommand("spam", "Spam a message", function(args)
@@ -625,6 +636,8 @@ addcommand("cage", "Cage a player", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
+            local prevAntibring = antis.antibring
+            antis.antibring = false
             _G.cagecheck = false
             tchat("give me 000000000000000000000000000000000000000000082357101")
             repeat task.wait() until plr.Backpack:FindFirstChild('PortableJustice')
@@ -640,6 +653,7 @@ addcommand("cage", "Cage a player", function(args)
             pcall(function() workspace[plr.Name]["PortableJustice"]:Destroy() end)
             _G.cagecheck = false
             plr.Character.HumanoidRootPart.CFrame = oldpos
+            antis.antibring = prevAntibring
         end)
     end
 end)
@@ -666,6 +680,8 @@ addcommand("gearbl", "Gear ban a player", function(args)
     local xplayer = args[1] if not xplayer then return end
     local xplr = GetPlayers(xplayer)[1]
     if not xplr then return end
+    local prevAntibring = antis.antibring
+    antis.antibring = false
     tchat("give me 000000000000000000000000000000000000000000082357101")
     tchat("unff " .. xplr.Name)
     tchat("speed " .. xplr.Name .. " 0")
@@ -685,6 +701,7 @@ addcommand("gearbl", "Gear ban a player", function(args)
     plr.Character.HumanoidRootPart.CFrame = pos
     tchat("ungear me")
     pcall(function() plr.PlayerGui:FindFirstChild("HelpGui"):Destroy() end)
+    antis.antibring = prevAntibring
 end)
 addcommand("gearban", "", function(args) commands["gearbl"](args) end)
 addcommand("gearblacklist", "", function(args) commands["gearbl"](args) end)
@@ -707,53 +724,17 @@ addcommand("ungearbl", "Remove gear ban", function(args)
     end
 end)
 
-addcommand("fixvel", "Fix velocity of map parts", function()
+addcommand("fixvel", "Fix velocity of all parts", function()
     pcall(function()
-        local function fixParts(folder)
-            if folder then
-                for _, v in ipairs(folder:GetChildren()) do
-                    if v:IsA("BasePart") then
-                        v.Velocity = Vector3.new(0,0,0)
-                        v.RotVelocity = Vector3.new(0,0,0)
-                    end
-                end
-            end
-        end
-        local terrain = workspace:FindFirstChild("Terrain")
-        if terrain then
-            local gameFolder = terrain:FindFirstChild("_Game") or terrain:FindFirstChild("GameFolder")
-            if gameFolder then
-                local ws = gameFolder:FindFirstChild("Workspace")
-                if ws then
-                    fixParts(ws:FindFirstChild("Basic House"))
-                    fixParts(ws:FindFirstChild("Obby"))
-                    fixParts(ws:FindFirstChild("Admin Dividers"))
-                    fixParts(ws:FindFirstChild("Obby Box"))
-                    fixParts(ws:FindFirstChild("Building Bricks"))
-                end
-                local admin = gameFolder:FindFirstChild("Admin")
-                if admin then
-                    local regen = admin:FindFirstChild("Regen")
-                    if regen and regen:IsA("BasePart") then
-                        regen.Velocity = Vector3.new(0,0,0)
-                        regen.RotVelocity = Vector3.new(0,0,0)
-                    end
-                    local pads = admin:FindFirstChild("Pads")
-                    if pads then
-                        for _, v in ipairs(pads:GetDescendants()) do
-                            if v.Name == "Head" and v:IsA("BasePart") then
-                                v.Velocity = Vector3.new(0,0,0)
-                                v.RotVelocity = Vector3.new(0,0,0)
-                            end
-                        end
-                    end
-                end
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Velocity = Vector3.new(0,0,0)
+                v.RotVelocity = Vector3.new(0,0,0)
             end
         end
     end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Velocity fixed!", Duration=2})
 end)
-
 addcommand("regen", "Click regen button", function()
     local regen = Admin and Admin:FindFirstChild("Regen")
     if regen and regen:FindFirstChild("ClickDetector") then fireclickdetector(regen.ClickDetector) WindUI:Notify({Title="†Køhlsîfy", Content="Regen clicked", Duration=2}) end
@@ -985,28 +966,6 @@ addcommand("clrall", "Delete everything in workspace", function()
 end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
 
-addcommand("fix", "Remove problematic seats and spawns", function()
-    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
-    if not tool then
-        tchat("f3x")
-        task.wait(2)
-        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
-    end
-    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
-    if plr.Backpack:FindFirstChild("Building Tools") then
-        plr.Backpack["Building Tools"].Parent = plr.Character
-    end
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    local toRemove = {}
-    for _, v in ipairs(workspace:GetDescendants()) do
-        if v:IsA("Seat") or (v.Name == "Spawn" and (v:IsA("BasePart") or v:IsA("Model")) and v:GetPivot().Y < -50) then
-            table.insert(toRemove, v)
-        end
-    end
-    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]=toRemove})) end)
-    WindUI:Notify({Title="†Køhlsîfy", Content="Seats and bottom spawns removed", Duration=3})
-end)
-
 addcommand("unlockworkspace", "Unlock all parts", function()
     for _, v in ipairs(workspace:GetDescendants()) do if v:IsA("BasePart") then v.Locked = false end end
     WindUI:Notify({Title="†Køhlsîfy", Content="Workspace unlocked", Duration=2})
@@ -1043,7 +1002,6 @@ addcommand("fcam", "Break a player's camera", function(args)
     tchat("respawn me")
 end)
 
--- Sorry, this was taken from kohlslite
 local function FixCam()
     task.spawn(function()
         local Player = game.Players.LocalPlayer
@@ -1104,7 +1062,10 @@ addcommand("slag", "Server lag (2 stones)", function()
 end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
+local scrashActive = false
+
 addcommand("swordcrash", "Crash server with sword clone exploit", function()
+    scrashActive = true
     tchat("ungear me")
     task.wait(0.5)
 
@@ -1116,6 +1077,7 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     end
     if not f3x then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        scrashActive = false
         return
     end
 
@@ -1139,6 +1101,7 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     end
     if not sword then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have DragonSword&Shield", Duration=3})
+        scrashActive = false
         return
     end
 
@@ -1147,39 +1110,26 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     end
     task.wait(0.5)
 
-    executeCommand("droptool")
+    sword.Parent = plr.Backpack
     task.wait(0.5)
-
-    local dropped = workspace:FindFirstChild(sword.Name)
-    if dropped then
-        local head = plr.Character:FindFirstChild("Head")
-        if head and firetouchinterest then
-            firetouchinterest(head, dropped, 1)
-            firetouchinterest(head, dropped, 0)
-        end
-    end
-    task.wait(0.5)
-
-    local swordInChar = plr.Character:FindFirstChild(sword.Name)
-    if swordInChar then
-        swordInChar.Parent = plr.Backpack
-    end
 
     if plr.Backpack:FindFirstChild("Building Tools") then
         plr.Backpack["Building Tools"].Parent = plr.Character
     elseif not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
         WindUI:Notify({Title="†Køhlsîfy", Content="F3X not found after give", Duration=3})
+        scrashActive = false
         return
     end
 
     local f3xTool = plr.Character:FindFirstChild("Building Tools") or plr.Backpack:FindFirstChild("Building Tools")
-    if not f3xTool then return end
+    if not f3xTool then scrashActive = false return end
 
     local playerModel = workspace:FindFirstChild(plr.Name)
     local leftArm = playerModel and playerModel:FindFirstChild("Left Arm")
     local shield = leftArm and leftArm:FindFirstChild("Shield")
     if not shield then
         WindUI:Notify({Title="†Køhlsîfy", Content="Shield not found in Left Arm", Duration=3})
+        scrashActive = false
         return
     end
 
@@ -1195,23 +1145,31 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
             end
         end
         if api then
-            for i = 1, 1000 do
+            while scrashActive do
                 pcall(function()
                     api:InvokeServer("Clone", {shield}, plr.Character)
                 end)
+                task.wait(0.01)
             end
         end
     end)
 
     spawn(function()
-        local api = GetNil("ServerEndpoint", "1_942552")
-        if api then
-            if playerModel and leftArm then
-                for i = 1, 1000 do
-                    pcall(function()
-                        api:InvokeServer("Clone", {leftArm}, playerModel)
-                    end)
+        local function findNilByName(name)
+            for _, obj in getnilinstances() do
+                if obj.Name == name then
+                    return obj
                 end
+            end
+            return nil
+        end
+        local nilLeftArm = findNilByName("Left Arm")
+        if nilLeftArm then
+            while scrashActive do
+                pcall(function()
+                    api:InvokeServer("Clone", {nilLeftArm}, plr.Character)
+                end)
+                task.wait(0.01)
             end
         end
     end)
@@ -1219,6 +1177,12 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     WindUI:Notify({Title="†Køhlsîfy", Content="Swordcrash initiated!", Duration=3})
 end)
 addcommand("scrash", "", function(args) commands["swordcrash"](args) end)
+
+addcommand("unscrash", "Stop swordcrash and reset", function()
+    scrashActive = false
+    tchat("reset me")
+    WindUI:Notify({Title="†Køhlsîfy", Content="Swordcrash stopped", Duration=2})
+end)
 
 addcommand("r15", "Switch to R15", function() tchat("!experiment adaptiver6 on") task.wait(2) tchat("unchar me") end)
 addcommand("r6", "Switch to R6", function() tchat("!experiment adaptiver6 off") end)
@@ -1325,15 +1289,72 @@ addcommand("femify", "Make player feminine", function(args)
     tchat("pants " .. tgt.Name .. " 7219538593")
 end)
 
+addcommand("title", "Set custom title for player", function(args)
+    local target = args[1]
+    if not target then return end
+    local tgt = GetPlayers(target)[1]
+    if not tgt then return end
+    local rank = "Noob"
+    if args[2] then
+        rank = args[2]
+    end
+    tchat("name " .. tgt.Name .. " [†Køhlsîfy]\n" .. rank .. "\n" .. tgt.DisplayName)
+end)
+
+addcommand("cbomb", "Spawn many bomb gears", function()
+    local function bombs()
+        for i = 1, 105 do
+            tchat("give me 88146497")
+        end
+    end
+    for j = 1, 5 do
+        bombs()
+        task.wait()
+    end
+end)
+
+local function NewW(welder, wld)
+    local pos = plr.Character.HumanoidRootPart.CFrame
+    tchat("give me 22787248")
+    repeat task.wait() until plr.Backpack:FindFirstChild("Watermelon")
+    local melon = plr.Backpack:FindFirstChild("Watermelon")
+    melon.Parent = plr.Character
+    melon.GripPos = Vector3.new(2,-0.5,1.5)
+    task.wait()
+    tchat("unsize me")
+    tchat("stun "..welder)
+    task.wait(.2)
+    melon.Parent = workspace
+    local anim = Instance.new("Animation")
+    anim.AnimationId = "rbxassetid://178130996"
+    local k = plr.Character.Humanoid:LoadAnimation(anim)
+    k:Play()
+    repeat
+        task.wait()
+        plr.Character.HumanoidRootPart.CFrame = wld.Character.HumanoidRootPart.CFrame*CFrame.new(-1,1.5,4)
+    until wld.Character:FindFirstChild("Watermelon")
+    k:Stop()
+    plr.Character.HumanoidRootPart.CFrame = pos
+end
+
+addcommand("weld", "Weld player", function(args)
+    local target = args[1]
+    if not target then return end
+    local cplr = GetPlayers(target)[1]
+    if not cplr then return end
+    NewW(plr.Name, cplr)
+end)
+
+-- UI
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - disable obby touch\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nswordcrash/scrash - crash server (sword exploit)"
+    Desc = "ban <player> [reason] - blacklist & kick\nban2 <player> [reason] - stronger ban\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - disable obby touch\nclrall/clr - delete all workspace parts\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nswordcrash/scrash - crash server (sword exploit)\nunscrash - stop crash"
 })
 
 __commandsTab:Paragraph({
     Title = "Commands 2",
-    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\ndroptool - drop currently equipped tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat\nprefix - change command prefix (max 1 char)"
+    Desc = "fixvel - fix velocity of all parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\ndroptool - drop currently equipped tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\ntitle <player> [rank] - set custom title\ncbomb - spawn bombs\nweld <player> - weld player\nhide/show - toggle command sending to chat\nprefix - change command prefix (max 1 char)"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
