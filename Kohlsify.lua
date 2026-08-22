@@ -2,6 +2,7 @@
     †Køhlsîfy - Open source script
     Only for Kohls admin house X (KAH X/14747334292)
     Made by nowhud (nowhudhejeir in roblox)
+    Some functions were taken from plsnoleak (script base), kohlslite (sorry, and big thanks to Ultra, ts2021 for open source scripts)
 ]]
 
 if getgenv().KohlsifyLoaded then return end
@@ -149,6 +150,10 @@ local antis = {
     antibanhammer = false,
     antigearban = false,
     antiblind = false,
+    antifling = false,
+    antibring = false,
+    antirespawn = false,
+    nok = true,
 }
 
 local configFolder = "kohlsify"
@@ -169,6 +174,7 @@ local function saveConfig()
         autoName = autoName,
         permEnabled = permEnabled,
         showCommands = showCommands,
+        prefix = prefix,
     }
     writefile(configFile, HS:JSONEncode(data))
 end
@@ -183,6 +189,7 @@ local function loadConfig()
             autoName = data.autoName or false
             permEnabled = data.permEnabled or false
             showCommands = data.showCommands or false
+            prefix = data.prefix or "†"
         end
     end
 end
@@ -250,6 +257,9 @@ local function checkNameModel()
     end
 end
 
+local lastPos = nil
+local respawnedRecently = false
+
 plr.CharacterAdded:Connect(function(chr)
     if autoGod or autoForceField then
         spawn(function()
@@ -281,6 +291,9 @@ plr.CharacterAdded:Connect(function(chr)
         if antis.antifreeze and hum.WalkSpeed == 0 then
             tchat("thaw me")
         end
+        if new == Enum.HumanoidStateType.Dead then
+            respawnedRecently = true
+        end
     end)
     chr.ChildAdded:Connect(function(child)
         if child.Name == "BFRC" then
@@ -298,8 +311,50 @@ end)
 
 spawn(function()
     while true do
-        task.wait(2)
-        if autoName then checkNameModel() end
+        task.wait(0.1)
+        local chr = plr.Character
+        if chr and chr:FindFirstChild("HumanoidRootPart") then
+            local root = chr.HumanoidRootPart
+            local pos = root.Position
+
+            if antis.antifling then
+                local vel = root.Velocity
+                if math.abs(vel.X) > 20 or math.abs(vel.Z) > 20 then
+                    if lastPos then root.CFrame = CFrame.new(lastPos) end
+                    root.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+
+            if antis.antibring and not respawnedRecently then
+                if lastPos and (pos - lastPos).Magnitude > 20 then
+                    local nearestPlayer = nil
+                    local minDist = math.huge
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= plr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            local d = (pos - p.Character.HumanoidRootPart.Position).Magnitude
+                            if d < minDist then
+                                minDist = d
+                                nearestPlayer = p
+                            end
+                        end
+                    end
+                    if nearestPlayer and minDist < 15 then
+                        root.CFrame = CFrame.new(lastPos)
+                        root.Velocity = Vector3.new(0, 0, 0)
+                    end
+                end
+            end
+
+            if antis.antirespawn and respawnedRecently then
+                if lastPos then
+                    root.CFrame = CFrame.new(lastPos)
+                    root.Velocity = Vector3.new(0, 0, 0)
+                end
+                respawnedRecently = false
+            end
+
+            lastPos = pos
+        end
     end
 end)
 
@@ -307,6 +362,33 @@ spawn(function()
     while true do
         task.wait(0.1)
         pcall(function()
+            if antis.nok then
+                local obby = nil
+                local terrain = workspace:FindFirstChild("Terrain")
+                if terrain then
+                    local gameFolder = terrain:FindFirstChild("_Game")
+                    if gameFolder then
+                        local ws = gameFolder:FindFirstChild("Workspace")
+                        if ws then obby = ws:FindFirstChild("Obby") end
+                    end
+                end
+                if not obby then
+                    obby = workspace:FindFirstChild("Tabby") and workspace.Tabby:FindFirstChild("Admin_House") and workspace.Tabby.Admin_House:FindFirstChild("Obby")
+                end
+                if obby then
+                    for _, child in ipairs(obby:GetChildren()) do
+                        if child:IsA("BasePart") then child.CanTouch = false end
+                    end
+                end
+                local obbyBox = workspace:FindFirstChild("Tabby") and workspace.Tabby:FindFirstChild("Admin_House") and workspace.Tabby.Admin_House:FindFirstChild("Obby Box")
+                if obbyBox then
+                    for i=1,4 do
+                        local part = obbyBox:GetChildren()[i]
+                        if part and part:IsA("BasePart") then part.CanTouch = false end
+                    end
+                end
+            end
+
             if antis.antiblind then
                 local blind = plr.PlayerGui:FindFirstChild("EFFECTGUIBLIND")
                 if blind then blind:Destroy() end
@@ -453,6 +535,27 @@ addcommand("hide", "Stop sending commands to chat", function()
     WindUI:Notify({Title="†Køhlsîfy", Content="Command sending disabled", Duration=2})
 end)
 
+addcommand("prefix", "Change command prefix (max 1 char)", function(args)
+    local newPrefix = args[1]
+    if newPrefix and newPrefix:len() <= 1 then
+        prefix = newPrefix
+    else
+        prefix = "†"
+    end
+    saveConfig()
+    WindUI:Notify({Title="†Køhlsîfy", Content="Prefix changed to: " .. prefix, Duration=2})
+end)
+
+addcommand("droptool", "Drop currently equipped tool", function()
+    local char = plr.Character
+    if not char then return end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        tool.Parent = workspace
+        WindUI:Notify({Title="†Køhlsîfy", Content="Tool dropped", Duration=2})
+    end
+end)
+
 local function handleBannedPlayer(p)
     if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) then
         local reason = blacklistReasons[p.Name]
@@ -523,7 +626,7 @@ addcommand("cage", "Cage a player", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
             _G.cagecheck = false
-            tchat("gear me 000000000000000000000000000000000000000000082357101")
+            tchat("give me 000000000000000000000000000000000000000000082357101")
             repeat task.wait() until plr.Backpack:FindFirstChild('PortableJustice')
             plr.Backpack.PortableJustice.Parent = plr.Character
             repeat task.wait() until workspace:FindFirstChild(plr.Name) and workspace[plr.Name]:FindFirstChild('PortableJustice') and workspace[plr.Name].PortableJustice:FindFirstChild('MouseClick')
@@ -563,7 +666,7 @@ addcommand("gearbl", "Gear ban a player", function(args)
     local xplayer = args[1] if not xplayer then return end
     local xplr = GetPlayers(xplayer)[1]
     if not xplr then return end
-    tchat("gear me 000000000000000000000000000000000000000000082357101")
+    tchat("give me 000000000000000000000000000000000000000000082357101")
     tchat("unff " .. xplr.Name)
     tchat("speed " .. xplr.Name .. " 0")
     tchat("unfly " .. xplr.Name)
@@ -592,7 +695,7 @@ addcommand("ungearbl", "Remove gear ban", function(args)
         spawn(function()
             tchat("ungear me") tchat("tp " .. tgt.Name .. " me") tchat("speed " .. tgt.Name .. " 0")
             task.wait(0.5)
-            tchat("gear me 0000000000000000000000000000000000000000000071037101")
+            tchat("give me 0000000000000000000000000000000000000000000071037101")
             repeat task.wait() until plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             local ungear = plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             task.wait() ungear.Parent = plr.Character
@@ -606,35 +709,73 @@ end)
 
 addcommand("fixvel", "Fix velocity of map parts", function()
     pcall(function()
-        local Workspace_Folder = workspace.Terrain["_Game"].Workspace
-        local Admin_Folder = workspace.Terrain["_Game"].Admin
-        Workspace_Folder.Baseplate.Velocity = Vector3.new(0,0,0) Workspace_Folder.Baseplate.RotVelocity = Vector3.new(0,0,0)
-        for _, v in ipairs(Workspace_Folder["Basic House"]:GetChildren()) do v.Velocity = Vector3.new(0,0,0) v.RotVelocity = Vector3.new(0,0,0) end
-        for _, v in ipairs(Workspace_Folder["Obby"]:GetChildren()) do v.Velocity = Vector3.new(0,0,0) v.RotVelocity = Vector3.new(0,0,0) end
-        for _, v in ipairs(Workspace_Folder["Admin Dividers"]:GetChildren()) do v.Velocity = Vector3.new(0,0,0) v.RotVelocity = Vector3.new(0,0,0) end
-        for _, v in ipairs(Workspace_Folder["Obby Box"]:GetChildren()) do v.Velocity = Vector3.new(0,0,0) v.RotVelocity = Vector3.new(0,0,0) end
-        for _, v in ipairs(Workspace_Folder["Building Bricks"]:GetChildren()) do v.Velocity = Vector3.new(0,0,0) v.RotVelocity = Vector3.new(0,0,0) end
-        Admin_Folder.Regen.Velocity = Vector3.new(0,0,0) Admin_Folder.Regen.RotVelocity = Vector3.new(0,0,0)
-        for _, v in ipairs(Admin_Folder.Pads:GetDescendants()) do if v.Name == "Head" then v.Velocity = Vector3.new(0,0,0) v.RotVelocity = Vector3.new(0,0,0) end end
+        local function fixParts(folder)
+            if folder then
+                for _, v in ipairs(folder:GetChildren()) do
+                    if v:IsA("BasePart") then
+                        v.Velocity = Vector3.new(0,0,0)
+                        v.RotVelocity = Vector3.new(0,0,0)
+                    end
+                end
+            end
+        end
+        local terrain = workspace:FindFirstChild("Terrain")
+        if terrain then
+            local gameFolder = terrain:FindFirstChild("_Game") or terrain:FindFirstChild("GameFolder")
+            if gameFolder then
+                local ws = gameFolder:FindFirstChild("Workspace")
+                if ws then
+                    fixParts(ws:FindFirstChild("Basic House"))
+                    fixParts(ws:FindFirstChild("Obby"))
+                    fixParts(ws:FindFirstChild("Admin Dividers"))
+                    fixParts(ws:FindFirstChild("Obby Box"))
+                    fixParts(ws:FindFirstChild("Building Bricks"))
+                end
+                local admin = gameFolder:FindFirstChild("Admin")
+                if admin then
+                    local regen = admin:FindFirstChild("Regen")
+                    if regen and regen:IsA("BasePart") then
+                        regen.Velocity = Vector3.new(0,0,0)
+                        regen.RotVelocity = Vector3.new(0,0,0)
+                    end
+                    local pads = admin:FindFirstChild("Pads")
+                    if pads then
+                        for _, v in ipairs(pads:GetDescendants()) do
+                            if v.Name == "Head" and v:IsA("BasePart") then
+                                v.Velocity = Vector3.new(0,0,0)
+                                v.RotVelocity = Vector3.new(0,0,0)
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Velocity fixed!", Duration=2})
 end)
+
 addcommand("regen", "Click regen button", function()
     local regen = Admin and Admin:FindFirstChild("Regen")
     if regen and regen:FindFirstChild("ClickDetector") then fireclickdetector(regen.ClickDetector) WindUI:Notify({Title="†Køhlsîfy", Content="Regen clicked", Duration=2}) end
 end)
 
 addcommand("fixregen", "Move regen to workspace and delete it", function()
-    tchat("f3x")
-    task.wait(2)
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
+        tchat("f3x")
+        task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    end
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=2}) return end
+    if plr.Backpack:FindFirstChild("Building Tools") then
+        plr.Backpack["Building Tools"].Parent = plr.Character
+    end
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
     task.wait(0.5)
-    if plr.Backpack:FindFirstChild("Building Tools") then
-        local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-        pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
-    end
+    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
+    pcall(function() api:InvokeServer(table.unpack({[1]="Remove", [2]={regen}})) end)
     WindUI:Notify({Title="†Køhlsîfy", Content="Regen reset", Duration=2})
 end)
 
@@ -652,8 +793,16 @@ local function GetNil(Name, DebugId)
 end
 
 addcommand("rmoveregen", "Remove regen (move to nil)", function()
-    tchat("f3x")
-    task.wait(2)
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
+        tchat("f3x")
+        task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    end
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=2}) return end
+    if plr.Backpack:FindFirstChild("Building Tools") then
+        plr.Backpack["Building Tools"].Parent = plr.Character
+    end
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
@@ -715,7 +864,7 @@ end)
 
 local function transferHotPotato(player)
     for _ = 1, 3 do
-        tchat("gear me 000000000000000000000000000000000000000000025741198")
+        tchat("give me 000000000000000000000000000000000000000000025741198")
         repeat task.wait() until plr.Backpack:FindFirstChild("HotPotato")
         local potato = plr.Backpack.HotPotato
         potato.Parent = plr.Character
@@ -744,6 +893,8 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
             if not tgt.Character then return end
+            tchat("blind " .. tgt.Name)
+            tchat("shiny " .. tgt.Name)
             tchat("freeze " .. tgt.Name)
             tchat("size " .. tgt.Name .. " nan")
             task.wait(0.1)
@@ -758,6 +909,9 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
                 nameMsg = "[†Køhlsîfy]\nKicked by " .. plr.DisplayName .. "\n" .. tgt.DisplayName
             end
             tchat("name " .. tgt.Name .. " " .. nameMsg)
+            tchat("ff " .. tgt.Name)
+            tchat("god " .. tgt.Name)
+            tchat("shiny " .. tgt.Name)
             recentlyKicked[tgt.Name] = true
         end)
     end
@@ -766,17 +920,17 @@ end)
 addcommand("kid", "Make a player small with candy", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("gear " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
+        spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("give " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
     end
 end)
 
 addcommand("clonef3x", "Clone your Building Tools", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
+    if not plr.Backpack:FindFirstChild("Building Tools") and not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
         tchat("f3x")
         task.wait(2)
     end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X, maybe you need to wait?", Duration=3})
+    if not plr.Backpack:FindFirstChild("Building Tools") and not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
         return
     end
     tchat("give me 000000000000000000000000000000000000000097161295")
@@ -791,65 +945,22 @@ addcommand("clonef3x", "Clone your Building Tools", function()
 end)
 addcommand("cf3x", "", function(args) commands["clonef3x"](args) end)
 
--- NOK loop replacement
-local __nokEnabled = true
-local __nokCoroutine = nil
-
-local function __nokLoop()
-    if __nokCoroutine then task.cancel(__nokCoroutine) end
-    __nokCoroutine = task.spawn(function()
-        while __nokEnabled do
-            pcall(function()
-                local obby = nil
-                local terrain = workspace:FindFirstChild("Terrain")
-                if terrain then
-                    local gameFolder = terrain:FindFirstChild("_Game")
-                    if gameFolder then
-                        local ws = gameFolder:FindFirstChild("Workspace")
-                        if ws then
-                            obby = ws:FindFirstChild("Obby")
-                        end
-                    end
-                end
-                if not obby then
-                    obby = workspace:FindFirstChild("Tabby") and workspace.Tabby:FindFirstChild("Admin_House") and workspace.Tabby.Admin_House:FindFirstChild("Obby")
-                end
-                if obby then
-                    for _, child in ipairs(obby:GetChildren()) do
-                        if child:IsA("BasePart") then
-                            child.CanTouch = false
-                        end
-                    end
-                end
-                local obbyBox = workspace:FindFirstChild("Tabby") and workspace.Tabby:FindFirstChild("Admin_House") and workspace.Tabby.Admin_House:FindFirstChild("Obby Box")
-                if obbyBox then
-                    for i=1,4 do
-                        local part = obbyBox:GetChildren()[i]
-                        if part and part:IsA("BasePart") then
-                            part.CanTouch = false
-                        end
-                    end
-                end
-            end)
-            task.wait(1)
-        end
-    end)
-end
-
-addcommand("nok", "Start NOK loop (disable obby touch)", function()
-    __nokEnabled = true
-    __nokLoop()
-    WindUI:Notify({Title="†Køhlsîfy", Content="NOK loop started", Duration=2})
+addcommand("nok", "Start NOK (disable obby touch)", function()
+    antis.nok = true
+    saveConfig()
+    WindUI:Notify({Title="†Køhlsîfy", Content="NOK enabled", Duration=2})
 end)
 
 addcommand("clrall", "Delete everything in workspace", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
         tchat("f3x")
         task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
     end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    if plr.Backpack:FindFirstChild("Building Tools") then
+        plr.Backpack["Building Tools"].Parent = plr.Character
     end
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
@@ -875,13 +986,15 @@ end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
 
 addcommand("fix", "Remove problematic seats and spawns", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
         tchat("f3x")
         task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
     end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
-        return
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    if plr.Backpack:FindFirstChild("Building Tools") then
+        plr.Backpack["Building Tools"].Parent = plr.Character
     end
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
@@ -901,7 +1014,7 @@ end)
 addcommand("unlockws", "", function(args) commands["unlockworkspace"](args) end)
 
 addcommand("nocam", "Break camera (shiftlock)", function()
-    tchat("gear me 000000000000000000000000000000000000000004842207161")
+    tchat("give me 000000000000000000000000000000000000000004842207161")
     repeat task.wait() until plr.Backpack:FindFirstChild("AR")
     plr.Backpack.AR.Parent = plr.Character
     task.wait(0.2)
@@ -917,7 +1030,7 @@ addcommand("fcam", "Break a player's camera", function(args)
     plr.Character.HumanoidRootPart.CFrame = CFrame.new(99999,99999,99999)
     local part = Instance.new("Part", plr.Character)
     part.Anchored = true part.Size = Vector3.new(10,1,10) part.CFrame = plr.Character.HumanoidRootPart.CFrame * CFrame.new(0,-5,0)
-    tchat("gear me 000000000000000000000000000000000000000000094794847")
+    tchat("give me 000000000000000000000000000000000000000000094794847")
     repeat task.wait() until plr.Backpack:FindFirstChild("VampireVanquisher")
     local vv = plr.Backpack.VampireVanquisher
     vv.Parent = plr.Character
@@ -977,8 +1090,8 @@ addcommand("fixcam", "Fix camera", function() FixCam() end)
 addcommand("slag", "Server lag (2 stones)", function()
     tchat("ungear me")
     task.wait(0.5)
-    tchat("gear me 000000000000000000000000000000000000000000059190534")
-    tchat("gear me 000000000000000000000000000000000000000000059190534")
+    tchat("give me 000000000000000000000000000000000000000000059190534")
+    tchat("give me 000000000000000000000000000000000000000000059190534")
     repeat task.wait() until #plr.Backpack:GetChildren() >= 2
     local tool1 = plr.Backpack:GetChildren()[1]
     local tool2 = plr.Backpack:GetChildren()[2]
@@ -991,28 +1104,121 @@ addcommand("slag", "Server lag (2 stones)", function()
 end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
-addcommand("servercrash", "Crash server with many blocks", function()
-    if not plr.Backpack:FindFirstChild("Building Tools") then
+addcommand("swordcrash", "Crash server with sword clone exploit", function()
+    tchat("ungear me")
+    task.wait(0.5)
+
+    local f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not f3x then
         tchat("f3x")
         task.wait(2)
+        f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
     end
-    if not plr.Backpack:FindFirstChild("Building Tools") then
+    if not f3x then
         WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
         return
     end
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    local pos = plr.Character and plr.Character.HumanoidRootPart and plr.Character.HumanoidRootPart.CFrame or CFrame.new(0, 5, 0)
+
+    local function findSwordTool(parent)
+        if not parent then return nil end
+        local exact = parent:FindFirstChild("DragonSword&Shield")
+        if exact and exact:IsA("Tool") then return exact end
+        for _, child in ipairs(parent:GetChildren()) do
+            if child:IsA("Tool") and child.Name:lower():find("dragon", 1, true) then
+                return child
+            end
+        end
+        return nil
+    end
+
+    local sword = findSwordTool(plr.Backpack) or findSwordTool(plr.Character)
+    if not sword then
+        tchat("give me 00000000000000000000000000000172298750")
+        task.wait(2)
+        sword = findSwordTool(plr.Backpack) or findSwordTool(plr.Character)
+    end
+    if not sword then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have DragonSword&Shield", Duration=3})
+        return
+    end
+
+    if sword.Parent == plr.Backpack then
+        sword.Parent = plr.Character
+    end
+    task.wait(0.5)
+
+    executeCommand("droptool")
+    task.wait(0.5)
+
+    local dropped = workspace:FindFirstChild(sword.Name)
+    if dropped then
+        local head = plr.Character:FindFirstChild("Head")
+        if head and firetouchinterest then
+            firetouchinterest(head, dropped, 1)
+            firetouchinterest(head, dropped, 0)
+        end
+    end
+    task.wait(0.5)
+
+    local swordInChar = plr.Character:FindFirstChild(sword.Name)
+    if swordInChar then
+        swordInChar.Parent = plr.Backpack
+    end
+
+    if plr.Backpack:FindFirstChild("Building Tools") then
+        plr.Backpack["Building Tools"].Parent = plr.Character
+    elseif not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
+        WindUI:Notify({Title="†Køhlsîfy", Content="F3X not found after give", Duration=3})
+        return
+    end
+
+    local f3xTool = plr.Character:FindFirstChild("Building Tools") or plr.Backpack:FindFirstChild("Building Tools")
+    if not f3xTool then return end
+
+    local playerModel = workspace:FindFirstChild(plr.Name)
+    local leftArm = playerModel and playerModel:FindFirstChild("Left Arm")
+    local shield = leftArm and leftArm:FindFirstChild("Shield")
+    if not shield then
+        WindUI:Notify({Title="†Køhlsîfy", Content="Shield not found in Left Arm", Duration=3})
+        return
+    end
+
     spawn(function()
-        for i = 1, 1000000 do
-            pcall(function()
-                api:InvokeServer("CreatePart", "Normal", pos, workspace.Tabby.Admin_House)
-            end)
+        local api = f3xTool:FindFirstChild("SyncAPI") and f3xTool.SyncAPI:FindFirstChild("ServerEndpoint")
+        if not api then
+            local bp = plr.Backpack:GetChildren()
+            for _, item in ipairs(bp) do
+                if item:FindFirstChild("SyncAPI") then
+                    api = item.SyncAPI.ServerEndpoint
+                    break
+                end
+            end
+        end
+        if api then
+            for i = 1, 1000 do
+                pcall(function()
+                    api:InvokeServer("Clone", {shield}, plr.Character)
+                end)
+            end
         end
     end)
-    WindUI:Notify({Title="†Køhlsîfy", Content="Server crash initiated!", Duration=3})
+
+    spawn(function()
+        local api = GetNil("ServerEndpoint", "1_942552")
+        if api then
+            if playerModel and leftArm then
+                for i = 1, 1000 do
+                    pcall(function()
+                        api:InvokeServer("Clone", {leftArm}, playerModel)
+                    end)
+                end
+            end
+        end
+    end)
+
+    WindUI:Notify({Title="†Køhlsîfy", Content="Swordcrash initiated!", Duration=3})
 end)
-addcommand("crash", "", function(args) commands["servercrash"](args) end)
-addcommand("shutdown", "", function(args) commands["servercrash"](args) end)
+addcommand("scrash", "", function(args) commands["swordcrash"](args) end)
 
 addcommand("r15", "Switch to R15", function() tchat("!experiment adaptiver6 on") task.wait(2) tchat("unchar me") end)
 addcommand("r6", "Switch to R6", function() tchat("!experiment adaptiver6 off") end)
@@ -1033,7 +1239,7 @@ end)
 
 addcommand("rejoin", "Rejoin server", function()
     if queue_on_teleport then
-        queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua\"))()")
+        queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Loader.lua\"))()")
     end
     TS:TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
 end)
@@ -1047,7 +1253,7 @@ addcommand("serverhop", "Hop server", function()
     if #good > 0 then
         local target = good[math.random(1, #good)]
         if queue_on_teleport then
-            queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Kohlsify.lua\"))()")
+            queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Loader.lua\"))()")
         end
         TS:TeleportToPlaceInstance(game.PlaceId, target.id, plr)
     else
@@ -1122,12 +1328,12 @@ end)
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - start NOK loop\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server"
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - disable obby touch\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nswordcrash/scrash - crash server (sword exploit)"
 })
 
 __commandsTab:Paragraph({
     Title = "Commands 2",
-    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
+    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\ndroptool - drop currently equipped tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat\nprefix - change command prefix (max 1 char)"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
@@ -1151,6 +1357,9 @@ __protectTab:Toggle({ Title = "Anti Void", Value = antis.antivoid, Callback = fu
 __protectTab:Toggle({ Title = "Anti Freeze", Value = antis.antifreeze, Callback = function(v) antis.antifreeze = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti BanHammer", Value = antis.antibanhammer, Callback = function(v) antis.antibanhammer = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti GearBan", Value = antis.antigearban, Callback = function(v) antis.antigearban = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Fling", Value = antis.antifling, Callback = function(v) antis.antifling = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Bring", Value = antis.antibring, Callback = function(v) antis.antibring = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Respawn (enable Anti Bring to use)", Value = antis.antirespawn, Callback = function(v) antis.antirespawn = v saveConfig() end })
 
 local __mainTab = Window:Tab({ Title = "Main", Icon = "home" })
 __mainTab:Toggle({ Title = "Perm", Value = permEnabled, Callback = function(v) permEnabled = v if v then permLoop() else if permCoroutine then task.cancel(permCoroutine) end end saveConfig() end })
@@ -1158,6 +1367,16 @@ __mainTab:Toggle({ Title = "Auto God (god me)", Value = autoGod, Callback = func
 __mainTab:Toggle({ Title = "Auto ForceField (ff me)", Value = autoForceField, Callback = function(v) autoForceField = v saveConfig() end })
 __mainTab:Toggle({ Title = "Auto Name", Value = autoName, Callback = function(v) autoName = v saveConfig() end })
 __mainTab:Toggle({ Title = "Show Commands", Value = showCommands, Callback = function(v) showCommands = v saveConfig() end })
+
+if isfile(configFolder .. "/loader.txt") then
+    __mainTab:Button({ Title = "Forget My Answer", Callback = function()
+        delfile(configFolder .. "/loader.txt")
+        if queue_on_teleport then
+            queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Loader.lua\"))()")
+        end
+        TS:TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
+    end })
+end
 
 spawn(function()
     local UI = Instance.new("ScreenGui")
@@ -1253,5 +1472,3 @@ for _, p in ipairs(Players:GetPlayers()) do
 end
 
 if permEnabled then permLoop() end
-
-__nokLoop()
