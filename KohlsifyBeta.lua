@@ -1118,25 +1118,29 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
         return
     end
 
-    -- Find Dragonheart tool by prefix
-    local function findDragonheartTool(parent)
+    -- Find DragonSword&Shield tool (exact name or prefix)
+    local function findSwordTool(parent)
         if not parent then return nil end
+        -- First check exact name
+        local exact = parent:FindFirstChild("DragonSword&Shield")
+        if exact and exact:IsA("Tool") then return exact end
+        -- Then search by prefix
         for _, child in ipairs(parent:GetChildren()) do
-            if child:IsA("Tool") and child.Name:lower():find("dragonheart", 1, true) then
+            if child:IsA("Tool") and child.Name:lower():find("dragon", 1, true) then
                 return child
             end
         end
         return nil
     end
 
-    local sword = findDragonheartTool(plr.Backpack) or findDragonheartTool(plr.Character)
+    local sword = findSwordTool(plr.Backpack) or findSwordTool(plr.Character)
     if not sword then
         tchat("give me 00000000000000000000000000000172298750")
         task.wait(2)
-        sword = findDragonheartTool(plr.Backpack) or findDragonheartTool(plr.Character)
+        sword = findSwordTool(plr.Backpack) or findSwordTool(plr.Character)
     end
     if not sword then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have Dragonheart sword", Duration=3})
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have DragonSword&Shield", Duration=3})
         return
     end
 
@@ -1150,7 +1154,7 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     executeCommand("droptool")
     task.wait(0.5)
 
-    -- Pick up the dropped tool (simulate touch)
+    -- Pick up the dropped tool
     local dropped = workspace:FindFirstChild(sword.Name)
     if dropped then
         local head = plr.Character:FindFirstChild("Head")
@@ -1161,7 +1165,7 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     end
     task.wait(0.5)
 
-    -- Unequip sword if still in character (should be after pickup)
+    -- Unequip sword if still in character
     local swordInChar = plr.Character:FindFirstChild(sword.Name)
     if swordInChar then
         swordInChar.Parent = plr.Backpack
@@ -1178,7 +1182,7 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     local f3xTool = plr.Character:FindFirstChild("Building Tools") or plr.Backpack:FindFirstChild("Building Tools")
     if not f3xTool then return end
 
-    -- Find the shield part inside Left Arm
+    -- Find shield inside Left Arm
     local playerModel = workspace:FindFirstChild(plr.Name)
     local leftArm = playerModel and playerModel:FindFirstChild("Left Arm")
     local shield = leftArm and leftArm:FindFirstChild("Shield")
