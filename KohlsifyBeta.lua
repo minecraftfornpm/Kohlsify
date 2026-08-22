@@ -546,6 +546,17 @@ addcommand("prefix", "Change command prefix (max 1 char)", function(args)
     WindUI:Notify({Title="†Køhlsîfy", Content="Prefix changed to: " .. prefix, Duration=2})
 end)
 
+-- Custom droptool command
+addcommand("droptool", "Drop currently equipped tool", function()
+    local char = plr.Character
+    if not char then return end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        tool.Parent = workspace
+        WindUI:Notify({Title="†Køhlsîfy", Content="Tool dropped", Duration=2})
+    end
+end)
+
 local function handleBannedPlayer(p)
     if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) then
         local reason = blacklistReasons[p.Name]
@@ -1089,9 +1100,13 @@ addcommand("slag", "Server lag (2 stones)", function()
 end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
--- Swordcrash command (replaces servercrash)
+-- Swordcrash with dynamic shield detection and custom droptool
 addcommand("swordcrash", "Crash server with sword clone exploit", function()
-    -- Ensure F3X exists (only give if missing)
+    -- First command: ungear me
+    tchat("ungear me")
+    task.wait(0.5)
+
+    -- Ensure F3X exists
     local f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
     if not f3x then
         tchat("f3x")
@@ -1103,26 +1118,40 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
         return
     end
 
-    -- Ensure Dragonheart Sword & Shield exists
-    local sword = plr.Backpack:FindFirstChild("Dragonheart Sword & Shield") or (plr.Character and plr.Character:FindFirstChild("Dragonheart Sword & Shield"))
+    -- Find Dragonheart tool by prefix
+    local function findDragonheartTool(parent)
+        if not parent then return nil end
+        for _, child in ipairs(parent:GetChildren()) do
+            if child:IsA("Tool") and child.Name:lower():find("dragonheart", 1, true) then
+                return child
+            end
+        end
+        return nil
+    end
+
+    local sword = findDragonheartTool(plr.Backpack) or findDragonheartTool(plr.Character)
     if not sword then
         tchat("give me 00000000000000000000000000000172298750")
         task.wait(2)
-        sword = plr.Backpack:FindFirstChild("Dragonheart Sword & Shield") or (plr.Character and plr.Character:FindFirstChild("Dragonheart Sword & Shield"))
+        sword = findDragonheartTool(plr.Backpack) or findDragonheartTool(plr.Character)
     end
     if not sword then
-        WindUI:Notify({Title="†Køhlsîfy", Content="You no have Dragonheart Sword & Shield", Duration=3})
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have Dragonheart sword", Duration=3})
         return
     end
 
-    -- Equip sword, drop, pick up, unequip
-    if plr.Backpack:FindFirstChild("Dragonheart Sword & Shield") then
-        plr.Backpack["Dragonheart Sword & Shield"].Parent = plr.Character
+    -- Equip sword
+    if sword.Parent == plr.Backpack then
+        sword.Parent = plr.Character
     end
     task.wait(0.5)
-    tchat("droptool")
+
+    -- Use custom droptool command
+    executeCommand("droptool")
     task.wait(0.5)
-    local dropped = workspace:FindFirstChild("Dragonheart Sword & Shield")
+
+    -- Pick up the dropped tool (simulate touch)
+    local dropped = workspace:FindFirstChild(sword.Name)
     if dropped then
         local head = plr.Character:FindFirstChild("Head")
         if head and firetouchinterest then
@@ -1131,8 +1160,9 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
         end
     end
     task.wait(0.5)
-    -- Unequip sword if still in character
-    local swordInChar = plr.Character:FindFirstChild("Dragonheart Sword & Shield")
+
+    -- Unequip sword if still in character (should be after pickup)
+    local swordInChar = plr.Character:FindFirstChild(sword.Name)
     if swordInChar then
         swordInChar.Parent = plr.Backpack
     end
@@ -1148,49 +1178,45 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     local f3xTool = plr.Character:FindFirstChild("Building Tools") or plr.Backpack:FindFirstChild("Building Tools")
     if not f3xTool then return end
 
-    -- First clone phase: clone Left Arm 1000 times
-    local function GetNil(Name, DebugId)
-        for _, Object in getnilinstances() do
-            if Object.Name == Name and Object:GetDebugId() == DebugId then
-                return Object
-            end
-        end
+    -- Find the shield part inside Left Arm
+    local playerModel = workspace:FindFirstChild(plr.Name)
+    local leftArm = playerModel and playerModel:FindFirstChild("Left Arm")
+    local shield = leftArm and leftArm:FindFirstChild("Shield")
+    if not shield then
+        WindUI:Notify({Title="†Køhlsîfy", Content="Shield not found in Left Arm", Duration=3})
+        return
     end
 
+    -- First clone phase: clone shield 1000 times using F3X API
     spawn(function()
         local api = f3xTool:FindFirstChild("SyncAPI") and f3xTool.SyncAPI:FindFirstChild("ServerEndpoint")
         if not api then
-            -- fallback to Backpack index 6 if exists
             local bp = plr.Backpack:GetChildren()
-            if bp[6] and bp[6]:FindFirstChild("SyncAPI") then
-                api = bp[6].SyncAPI.ServerEndpoint
+            for _, item in ipairs(bp) do
+                if item:FindFirstChild("SyncAPI") then
+                    api = item.SyncAPI.ServerEndpoint
+                    break
+                end
             end
         end
         if api then
-            local leftArm = GetNil("Left Arm", "1_951445")
-            if leftArm then
-                for i = 1, 1000 do
-                    pcall(function()
-                        api:InvokeServer("Clone", {leftArm}, plr.Character)
-                    end)
-                end
+            for i = 1, 1000 do
+                pcall(function()
+                    api:InvokeServer("Clone", {shield}, plr.Character)
+                end)
             end
         end
     end)
 
-    -- Second clone phase: clone player's Left Arm 1000 times
+    -- Second clone phase: clone player's Left Arm 1000 times using nil event
     spawn(function()
         local api = GetNil("ServerEndpoint", "1_942552")
         if api then
-            local playerModel = workspace:FindFirstChild(plr.Name)
-            if playerModel then
-                local leftArm = playerModel:FindFirstChild("Left Arm")
-                if leftArm then
-                    for i = 1, 1000 do
-                        pcall(function()
-                            api:InvokeServer("Clone", {leftArm}, playerModel)
-                        end)
-                    end
+            if playerModel and leftArm then
+                for i = 1, 1000 do
+                    pcall(function()
+                        api:InvokeServer("Clone", {leftArm}, playerModel)
+                    end)
                 end
             end
         end
@@ -1314,7 +1340,7 @@ __commandsTab:Paragraph({
 
 __commandsTab:Paragraph({
     Title = "Commands 2",
-    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat\nprefix - change command prefix (max 1 char)"
+    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\ndroptool - drop currently equipped tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat\nprefix - change command prefix (max 1 char)"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
