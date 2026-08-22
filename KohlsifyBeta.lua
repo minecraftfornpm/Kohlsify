@@ -546,7 +546,6 @@ addcommand("prefix", "Change command prefix (max 1 char)", function(args)
     WindUI:Notify({Title="†Køhlsîfy", Content="Prefix changed to: " .. prefix, Duration=2})
 end)
 
--- Custom droptool command
 addcommand("droptool", "Drop currently equipped tool", function()
     local char = plr.Character
     if not char then return end
@@ -627,7 +626,7 @@ addcommand("cage", "Cage a player", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
             _G.cagecheck = false
-            tchat("gear me 000000000000000000000000000000000000000000082357101")
+            tchat("give me 000000000000000000000000000000000000000000082357101")
             repeat task.wait() until plr.Backpack:FindFirstChild('PortableJustice')
             plr.Backpack.PortableJustice.Parent = plr.Character
             repeat task.wait() until workspace:FindFirstChild(plr.Name) and workspace[plr.Name]:FindFirstChild('PortableJustice') and workspace[plr.Name].PortableJustice:FindFirstChild('MouseClick')
@@ -667,7 +666,7 @@ addcommand("gearbl", "Gear ban a player", function(args)
     local xplayer = args[1] if not xplayer then return end
     local xplr = GetPlayers(xplayer)[1]
     if not xplr then return end
-    tchat("gear me 000000000000000000000000000000000000000000082357101")
+    tchat("give me 000000000000000000000000000000000000000000082357101")
     tchat("unff " .. xplr.Name)
     tchat("speed " .. xplr.Name .. " 0")
     tchat("unfly " .. xplr.Name)
@@ -696,7 +695,7 @@ addcommand("ungearbl", "Remove gear ban", function(args)
         spawn(function()
             tchat("ungear me") tchat("tp " .. tgt.Name .. " me") tchat("speed " .. tgt.Name .. " 0")
             task.wait(0.5)
-            tchat("gear me 0000000000000000000000000000000000000000000071037101")
+            tchat("give me 0000000000000000000000000000000000000000000071037101")
             repeat task.wait() until plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             local ungear = plr.Backpack:FindFirstChild("DaggerOfShatteredDimensions")
             task.wait() ungear.Parent = plr.Character
@@ -865,7 +864,7 @@ end)
 
 local function transferHotPotato(player)
     for _ = 1, 3 do
-        tchat("gear me 000000000000000000000000000000000000000000025741198")
+        tchat("give me 000000000000000000000000000000000000000000025741198")
         repeat task.wait() until plr.Backpack:FindFirstChild("HotPotato")
         local potato = plr.Backpack.HotPotato
         potato.Parent = plr.Character
@@ -894,6 +893,8 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
     for _, tgt in pairs(GetPlayers(target)) do
         spawn(function()
             if not tgt.Character then return end
+            tchat("blind " .. tgt.Name)
+            tchat("shiny " .. tgt.Name)
             tchat("freeze " .. tgt.Name)
             tchat("size " .. tgt.Name .. " nan")
             task.wait(0.1)
@@ -908,6 +909,9 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
                 nameMsg = "[†Køhlsîfy]\nKicked by " .. plr.DisplayName .. "\n" .. tgt.DisplayName
             end
             tchat("name " .. tgt.Name .. " " .. nameMsg)
+            tchat("ff " .. tgt.Name)
+            tchat("god " .. tgt.Name)
+            tchat("shiny " .. tgt.Name)
             recentlyKicked[tgt.Name] = true
         end)
     end
@@ -916,7 +920,7 @@ end)
 addcommand("kid", "Make a player small with candy", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("gear " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
+        spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("give " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
     end
 end)
 
@@ -1010,7 +1014,7 @@ end)
 addcommand("unlockws", "", function(args) commands["unlockworkspace"](args) end)
 
 addcommand("nocam", "Break camera (shiftlock)", function()
-    tchat("gear me 000000000000000000000000000000000000000004842207161")
+    tchat("give me 000000000000000000000000000000000000000004842207161")
     repeat task.wait() until plr.Backpack:FindFirstChild("AR")
     plr.Backpack.AR.Parent = plr.Character
     task.wait(0.2)
@@ -1026,7 +1030,7 @@ addcommand("fcam", "Break a player's camera", function(args)
     plr.Character.HumanoidRootPart.CFrame = CFrame.new(99999,99999,99999)
     local part = Instance.new("Part", plr.Character)
     part.Anchored = true part.Size = Vector3.new(10,1,10) part.CFrame = plr.Character.HumanoidRootPart.CFrame * CFrame.new(0,-5,0)
-    tchat("gear me 000000000000000000000000000000000000000000094794847")
+    tchat("give me 000000000000000000000000000000000000000000094794847")
     repeat task.wait() until plr.Backpack:FindFirstChild("VampireVanquisher")
     local vv = plr.Backpack.VampireVanquisher
     vv.Parent = plr.Character
@@ -1086,8 +1090,8 @@ addcommand("fixcam", "Fix camera", function() FixCam() end)
 addcommand("slag", "Server lag (2 stones)", function()
     tchat("ungear me")
     task.wait(0.5)
-    tchat("gear me 000000000000000000000000000000000000000000059190534")
-    tchat("gear me 000000000000000000000000000000000000000000059190534")
+    tchat("give me 000000000000000000000000000000000000000000059190534")
+    tchat("give me 000000000000000000000000000000000000000000059190534")
     repeat task.wait() until #plr.Backpack:GetChildren() >= 2
     local tool1 = plr.Backpack:GetChildren()[1]
     local tool2 = plr.Backpack:GetChildren()[2]
@@ -1100,13 +1104,10 @@ addcommand("slag", "Server lag (2 stones)", function()
 end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
--- Swordcrash with dynamic shield detection and custom droptool
 addcommand("swordcrash", "Crash server with sword clone exploit", function()
-    -- First command: ungear me
     tchat("ungear me")
     task.wait(0.5)
 
-    -- Ensure F3X exists
     local f3x = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
     if not f3x then
         tchat("f3x")
@@ -1118,13 +1119,10 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
         return
     end
 
-    -- Find DragonSword&Shield tool (exact name or prefix)
     local function findSwordTool(parent)
         if not parent then return nil end
-        -- First check exact name
         local exact = parent:FindFirstChild("DragonSword&Shield")
         if exact and exact:IsA("Tool") then return exact end
-        -- Then search by prefix
         for _, child in ipairs(parent:GetChildren()) do
             if child:IsA("Tool") and child.Name:lower():find("dragon", 1, true) then
                 return child
@@ -1144,17 +1142,14 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
         return
     end
 
-    -- Equip sword
     if sword.Parent == plr.Backpack then
         sword.Parent = plr.Character
     end
     task.wait(0.5)
 
-    -- Use custom droptool command
     executeCommand("droptool")
     task.wait(0.5)
 
-    -- Pick up the dropped tool
     local dropped = workspace:FindFirstChild(sword.Name)
     if dropped then
         local head = plr.Character:FindFirstChild("Head")
@@ -1165,13 +1160,11 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     end
     task.wait(0.5)
 
-    -- Unequip sword if still in character
     local swordInChar = plr.Character:FindFirstChild(sword.Name)
     if swordInChar then
         swordInChar.Parent = plr.Backpack
     end
 
-    -- Equip F3X
     if plr.Backpack:FindFirstChild("Building Tools") then
         plr.Backpack["Building Tools"].Parent = plr.Character
     elseif not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
@@ -1182,7 +1175,6 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
     local f3xTool = plr.Character:FindFirstChild("Building Tools") or plr.Backpack:FindFirstChild("Building Tools")
     if not f3xTool then return end
 
-    -- Find shield inside Left Arm
     local playerModel = workspace:FindFirstChild(plr.Name)
     local leftArm = playerModel and playerModel:FindFirstChild("Left Arm")
     local shield = leftArm and leftArm:FindFirstChild("Shield")
@@ -1191,7 +1183,6 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
         return
     end
 
-    -- First clone phase: clone shield 1000 times using F3X API
     spawn(function()
         local api = f3xTool:FindFirstChild("SyncAPI") and f3xTool.SyncAPI:FindFirstChild("ServerEndpoint")
         if not api then
@@ -1212,7 +1203,6 @@ addcommand("swordcrash", "Crash server with sword clone exploit", function()
         end
     end)
 
-    -- Second clone phase: clone player's Left Arm 1000 times using nil event
     spawn(function()
         local api = GetNil("ServerEndpoint", "1_942552")
         if api then
@@ -1335,7 +1325,6 @@ addcommand("femify", "Make player feminine", function(args)
     tchat("pants " .. tgt.Name .. " 7219538593")
 end)
 
--- UI
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
