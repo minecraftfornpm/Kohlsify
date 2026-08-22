@@ -149,6 +149,9 @@ local antis = {
     antibanhammer = false,
     antigearban = false,
     antiblind = false,
+    antifling = false,
+    antibring = false,
+    antirespawn = false,
 }
 
 local configFolder = "kohlsify"
@@ -169,6 +172,7 @@ local function saveConfig()
         autoName = autoName,
         permEnabled = permEnabled,
         showCommands = showCommands,
+        prefix = prefix,
     }
     writefile(configFile, HS:JSONEncode(data))
 end
@@ -183,6 +187,7 @@ local function loadConfig()
             autoName = data.autoName or false
             permEnabled = data.permEnabled or false
             showCommands = data.showCommands or false
+            prefix = data.prefix or "†"
         end
     end
 end
@@ -250,6 +255,10 @@ local function checkNameModel()
     end
 end
 
+local lastPos = nil
+local lastTeleportPos = nil
+local lastAlive = true
+
 plr.CharacterAdded:Connect(function(chr)
     if autoGod or autoForceField then
         spawn(function()
@@ -281,6 +290,11 @@ plr.CharacterAdded:Connect(function(chr)
         if antis.antifreeze and hum.WalkSpeed == 0 then
             tchat("thaw me")
         end
+        if new == Enum.HumanoidStateType.Dead then
+            lastAlive = false
+        elseif new == Enum.HumanoidStateType.Running or new == Enum.HumanoidStateType.Landed then
+            lastAlive = true
+        end
     end)
     chr.ChildAdded:Connect(function(child)
         if child.Name == "BFRC" then
@@ -298,14 +312,58 @@ end)
 
 spawn(function()
     while true do
-        task.wait(2)
-        if autoName then checkNameModel() end
+        task.wait(0.1)
+        local chr = plr.Character
+        if chr and chr:FindFirstChild("HumanoidRootPart") then
+            local pos = chr.HumanoidRootPart.Position
+            if antis.antifling then
+                local vel = chr.HumanoidRootPart.Velocity
+                if math.abs(vel.X) > 20 or math.abs(vel.Z) > 20 then
+                    if lastPos then
+                        chr.HumanoidRootPart.CFrame = CFrame.new(lastPos)
+                    end
+                    chr.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+            if antis.antibring then
+                if lastPos then
+                    local distance = (pos - lastPos).Magnitude
+                    if distance > 100 then -- suspicious teleport
+                        local nearestPlayer = nil
+                        local minDist = math.huge
+                        for _, p in ipairs(Players:GetPlayers()) do
+                            if p ~= plr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                                local d = (pos - p.Character.HumanoidRootPart.Position).Magnitude
+                                if d < minDist then
+                                    minDist = d
+                                    nearestPlayer = p
+                                end
+                            end
+                        end
+                        if nearestPlayer and minDist < 20 then -- teleported to a player
+                            chr.HumanoidRootPart.CFrame = CFrame.new(lastPos)
+                            chr.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                end
+            end
+            if antis.antirespawn then
+                if not lastAlive then
+                    -- character was dead, now alive, assume respawned
+                    chr.HumanoidRootPart.CFrame = CFrame.new(lastPos)
+                    chr.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                    lastAlive = true
+                end
+            end
+            lastPos = pos
+        end
+        task.wait()
     end
 end)
 
 spawn(function()
     while true do
-        task.wait(0.1)
+        task.wait(0.5)
         pcall(function()
             if antis.antiblind then
                 local blind = plr.PlayerGui:FindFirstChild("EFFECTGUIBLIND")
@@ -453,24 +511,16 @@ addcommand("hide", "Stop sending commands to chat", function()
     WindUI:Notify({Title="†Køhlsîfy", Content="Command sending disabled", Duration=2})
 end)
 
-local function ensureF3XEquipped()
-    if plr.Character and plr.Character:FindFirstChild("Building Tools") then
-        return true
+addcommand("prefix", "Change command prefix (max 2 chars)", function(args)
+    local newPrefix = args[1]
+    if newPrefix and newPrefix:len() <= 2 then
+        prefix = newPrefix
+    else
+        prefix = "†"
     end
-    if plr.Backpack:FindFirstChild("Building Tools") then
-        plr.Backpack["Building Tools"].Parent = plr.Character
-        task.wait(0.5)
-        return true
-    end
-    tchat("f3x")
-    task.wait(2)
-    if plr.Backpack:FindFirstChild("Building Tools") then
-        plr.Backpack["Building Tools"].Parent = plr.Character
-        task.wait(0.5)
-        return true
-    end
-    return false
-end
+    saveConfig()
+    WindUI:Notify({Title="†Køhlsîfy", Content="Prefix changed to: " .. prefix, Duration=2})
+end)
 
 local function handleBannedPlayer(p)
     if table.find(blacklisted, p.Name) and not (p.Name == ownerName or isWhitelisted(p)) then
@@ -493,7 +543,6 @@ addcommand("bl", "Add player to blacklist & kick if online", function(args)
         if reason:match("^%s*$") then reason = nil end
     end
     for _, tgt in pairs(GetPlayers(target)) do
-        if tgt.Name == ownerName or isWhitelisted(tgt) then continue end
         if not table.find(blacklisted, tgt.Name) then
             local line = reason and (tgt.Name .. "|" .. reason) or tgt.Name
             appendfile("Blacklisted.txt", line .. "\n")
@@ -519,7 +568,6 @@ addcommand("unbl", "", function(args) commands["unban"](args) end)
 addcommand("fpunish", "Fake punish a player", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        if isWhitelisted(tgt) then WindUI:Notify({Title="†Køhlsîfy", Content=tgt.Name.." is whitelisted", Duration=3}) return end
         tchat("unff "..tgt.Name) tchat("freeze "..tgt.Name) tchat("invisible "..tgt.Name)
     end
 end)
@@ -542,7 +590,6 @@ end)
 addcommand("cage", "Cage a player", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        if isWhitelisted(tgt) then WindUI:Notify({Title="†Køhlsîfy", Content=tgt.Name.." is whitelisted", Duration=3}) return end
         spawn(function()
             _G.cagecheck = false
             tchat("gear me 000000000000000000000000000000000000000000082357101")
@@ -565,7 +612,6 @@ end)
 addcommand("loopcage", "Loop cage a player", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        if isWhitelisted(tgt) then WindUI:Notify({Title="†Køhlsîfy", Content=tgt.Name.." is whitelisted", Duration=3}) return end
         if cageLoops[tgt.Name] then return end
         cageLoops[tgt.Name] = true
         spawn(function()
@@ -612,7 +658,6 @@ addcommand("gearblacklist", "", function(args) commands["gearbl"](args) end)
 addcommand("ungearbl", "Remove gear ban", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        if isWhitelisted(tgt) then WindUI:Notify({Title="†Køhlsîfy", Content=tgt.Name.." is whitelisted", Duration=3}) return end
         spawn(function()
             tchat("ungear me") tchat("tp " .. tgt.Name .. " me") tchat("speed " .. tgt.Name .. " 0")
             task.wait(0.5)
@@ -649,7 +694,13 @@ addcommand("regen", "Click regen button", function()
 end)
 
 addcommand("fixregen", "Move regen to workspace and delete it", function()
-    if not ensureF3XEquipped() then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
+        tchat("f3x")
+        task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    end
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=2}) return end
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
@@ -664,23 +715,45 @@ addcommand("tptoregen", "Teleport to regen", function()
     if regen and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then plr.Character.HumanoidRootPart.CFrame = regen.CFrame * CFrame.new(0, 2.5, 0) end
 end)
 
+local function GetNil(Name, DebugId)
+    for _, Object in getnilinstances() do
+        if Object.Name == Name and Object:GetDebugId() == DebugId then
+            return Object
+        end
+    end
+end
+
 addcommand("rmoveregen", "Remove regen (move to nil)", function()
-    if not ensureF3XEquipped() then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
+        tchat("f3x")
+        task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    end
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=2}) return end
     local regen = Admin and Admin:FindFirstChild("Regen")
     if not regen then WindUI:Notify({Title="†Køhlsîfy", Content="Regen not found", Duration=2}) return end
     regen.Parent = workspace
     task.wait(0.5)
-    local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
-    local randPos = CFrame.new(
-        math.random(-1000000000, -100000000),
-        math.random(-1000000000, -100000000),
-        math.random(-1000000000, -100000000)
-    )
-    pcall(function()
-        api:InvokeServer("SyncMove", {
-            { Part = regen, CFrame = randPos }
-        })
-    end)
+    local event = GetNil("ServerEndpoint", "1_678455")
+    if event then
+        pcall(function()
+            local randPos = CFrame.new(
+                math.random(-1000000000, -100000000),
+                math.random(-1000000000, -100000000),
+                math.random(-1000000000, -100000000)
+            )
+            event:InvokeServer(
+                "SyncMove",
+                {
+                    {
+                        Part = regen,
+                        CFrame = randPos
+                    }
+                }
+            )
+        end)
+    end
     WindUI:Notify({Title="†Køhlsîfy", Content="Regen moved to nil", Duration=2})
 end)
 
@@ -746,7 +819,6 @@ addcommand("kick", "Hot potato kick (optional reason)", function(args)
         if reason:match("^%s*$") then reason = nil end
     end
     for _, tgt in pairs(GetPlayers(target)) do
-        if isWhitelisted(tgt) then WindUI:Notify({Title="†Køhlsîfy", Content=tgt.Name.." is whitelisted", Duration=3}) return end
         spawn(function()
             if not tgt.Character then return end
             tchat("freeze " .. tgt.Name)
@@ -771,13 +843,19 @@ end)
 addcommand("kid", "Make a player small with candy", function(args)
     local target = args[1] if not target then return end
     for _, tgt in pairs(GetPlayers(target)) do
-        if isWhitelisted(tgt) then WindUI:Notify({Title="†Køhlsîfy", Content=tgt.Name.." is whitelisted", Duration=3}) return end
         spawn(function() tchat("size " .. tgt.Name .. " 0.5") tchat("gear " .. tgt.Name .. " candy") tchat("name " .. tgt.Name .. " Good Kid") end)
     end
 end)
 
 addcommand("clonef3x", "Clone your Building Tools", function()
-    if not ensureF3XEquipped() then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    if not plr.Backpack:FindFirstChild("Building Tools") and not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
+        tchat("f3x")
+        task.wait(2)
+    end
+    if not plr.Backpack:FindFirstChild("Building Tools") and not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
     tchat("give me 000000000000000000000000000000000000000097161295")
     repeat task.wait() until plr.Backpack:FindFirstChild("Gear Cloner")
     local cloner = plr.Backpack["Gear Cloner"]
@@ -790,7 +868,6 @@ addcommand("clonef3x", "Clone your Building Tools", function()
 end)
 addcommand("cf3x", "", function(args) commands["clonef3x"](args) end)
 
--- NOK loop replacement
 local __nokEnabled = true
 local __nokCoroutine = nil
 
@@ -842,7 +919,13 @@ addcommand("nok", "Start NOK loop (disable obby touch)", function()
 end)
 
 addcommand("clrall", "Delete everything in workspace", function()
-    if not ensureF3XEquipped() then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
+        tchat("f3x")
+        task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    end
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
     for _, v in ipairs(workspace:GetDescendants()) do
@@ -867,7 +950,13 @@ end)
 addcommand("clr", "", function(args) commands["clrall"](args) end)
 
 addcommand("fix", "Remove problematic seats and spawns", function()
-    if not ensureF3XEquipped() then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    local tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    if not tool then
+        tchat("f3x")
+        task.wait(2)
+        tool = plr.Backpack:FindFirstChild("Building Tools") or (plr.Character and plr.Character:FindFirstChild("Building Tools"))
+    end
+    if not tool then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local toRemove = {}
     for _, v in ipairs(workspace:GetDescendants()) do
@@ -977,7 +1066,14 @@ end)
 addcommand("serverlag", "", function(args) commands["slag"](args) end)
 
 addcommand("servercrash", "Crash server with many blocks", function()
-    if not ensureF3XEquipped() then WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3}) return end
+    if not plr.Backpack:FindFirstChild("Building Tools") and not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
+        tchat("f3x")
+        task.wait(2)
+    end
+    if not plr.Backpack:FindFirstChild("Building Tools") and not (plr.Character and plr.Character:FindFirstChild("Building Tools")) then
+        WindUI:Notify({Title="†Køhlsîfy", Content="You no have F3X", Duration=3})
+        return
+    end
     local api = workspace.nowhudhejeir["Building Tools"].SyncAPI.ServerEndpoint
     local pos = plr.Character and plr.Character.HumanoidRootPart and plr.Character.HumanoidRootPart.CFrame or CFrame.new(0, 5, 0)
     spawn(function()
@@ -1097,6 +1193,7 @@ addcommand("femify", "Make player feminine", function(args)
     tchat("pants " .. tgt.Name .. " 7219538593")
 end)
 
+-- UI
 local __commandsTab = Window:Tab({ Title = "Commands", Icon = "lucide:terminal" })
 __commandsTab:Paragraph({
     Title = "Commands 1",
@@ -1105,7 +1202,7 @@ __commandsTab:Paragraph({
 
 __commandsTab:Paragraph({
     Title = "Commands 2",
-    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat"
+    Desc = "fixvel - fix velocity of map parts\nregen - click regen button\nfixregen - move regen to spawn\ntptoregen - teleport to regen\nrmoveregen - remove regen\ndeletetool - get delete tool\nr15/r6 - switch rig\nping - show ping\njerk - animation\nrejoin/rj - rejoin\nserverhop/shop - hop server\nequipall - equip all\ndropall - drop all\nfurry <player> - make furry\nnaked/nude/nakify <player> - paint skin color\nfemify <player> - make feminine\nhide/show - toggle command sending to chat\nprefix - change command prefix (max 2 chars)"
 })
 
 local __toolsTab = Window:Tab({ Title = "Tools", Icon = "tool" })
@@ -1129,6 +1226,9 @@ __protectTab:Toggle({ Title = "Anti Void", Value = antis.antivoid, Callback = fu
 __protectTab:Toggle({ Title = "Anti Freeze", Value = antis.antifreeze, Callback = function(v) antis.antifreeze = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti BanHammer", Value = antis.antibanhammer, Callback = function(v) antis.antibanhammer = v saveConfig() end })
 __protectTab:Toggle({ Title = "Anti GearBan", Value = antis.antigearban, Callback = function(v) antis.antigearban = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Fling", Value = antis.antifling, Callback = function(v) antis.antifling = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Bring", Value = antis.antibring, Callback = function(v) antis.antibring = v saveConfig() end })
+__protectTab:Toggle({ Title = "Anti Respawn", Value = antis.antirespawn, Callback = function(v) antis.antirespawn = v saveConfig() end })
 
 local __mainTab = Window:Tab({ Title = "Main", Icon = "home" })
 __mainTab:Toggle({ Title = "Perm", Value = permEnabled, Callback = function(v) permEnabled = v if v then permLoop() else if permCoroutine then task.cancel(permCoroutine) end end saveConfig() end })
@@ -1137,16 +1237,14 @@ __mainTab:Toggle({ Title = "Auto ForceField (ff me)", Value = autoForceField, Ca
 __mainTab:Toggle({ Title = "Auto Name", Value = autoName, Callback = function(v) autoName = v saveConfig() end })
 __mainTab:Toggle({ Title = "Show Commands", Value = showCommands, Callback = function(v) showCommands = v saveConfig() end })
 
-if isfile("kohlsify/loader.txt") then
-    __mainTab:Button({
-        Title = "Forget My Answer",
-        Callback = function()
-            if delfile then
-                delfile("kohlsify/loader.txt")
-            end
-            commands["rejoin"]({})
+if isfile(configFolder .. "/loader.txt") then
+    __mainTab:Button({ Title = "Forget My Answer", Callback = function()
+        delfile(configFolder .. "/loader.txt")
+        if queue_on_teleport then
+            queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/minecraftfornpm/Kohlsify/refs/heads/main/Loader.lua\"))()")
         end
-    })
+        TS:TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
+    end })
 end
 
 spawn(function()
@@ -1240,7 +1338,7 @@ for _, p in ipairs(Players:GetPlayers()) do
         end
         handleBannedPlayer(p)
     end
-end)
+end
 
 if permEnabled then permLoop() end
 
